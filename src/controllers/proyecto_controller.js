@@ -210,28 +210,37 @@ export const actualizarProyecto = async (req, res) => {
       });
     }
 
+    // ✅ CORRECCIÓN: Construir objeto de actualización separado de req.body
+    // para evitar que express-validator filtre los campos de imagen
+    const datosActualizacion = { ...req.body };
+
     // Manejar actualización de imagen
     if (req.files?.imagen) {
       // Eliminar imagen anterior de Cloudinary si existe
       if (proyecto.imagenesID && proyecto.imagenesID.length > 0) {
         for (const publicId of proyecto.imagenesID) {
-          await eliminarImagenCloudinary(publicId);
+          try {
+            await eliminarImagenCloudinary(publicId);
+          } catch (err) {
+            console.error('Error al eliminar imagen anterior de Cloudinary:', err);
+          }
         }
       }
 
-      // Subir nueva imagen
+      // Subir nueva imagen a Cloudinary
       const { secure_url, public_id } = await subirImagenCloudinary(
         req.files.imagen.tempFilePath,
         'Proyectos'
       );
-      
-      req.body.imagenes = [secure_url];
-      req.body.imagenesID = [public_id];
+
+      // ✅ Asignar al objeto de actualización (NO a req.body)
+      datosActualizacion.imagenes = [secure_url];
+      datosActualizacion.imagenesID = [public_id];
     }
 
     const proyectoActualizado = await Proyecto.findByIdAndUpdate(
       id,
-      req.body,
+      datosActualizacion,  // ✅ Usar el objeto construido, no req.body directamente
       { new: true, runValidators: true }
     ).populate('autor', 'nombre apellido carrera email')
      .populate('colaboradores', 'nombre apellido carrera');
