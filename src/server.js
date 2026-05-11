@@ -22,8 +22,9 @@ const app = express();
 
 // ===== MIDDLEWARES =====
 
-// Body parser
+// Body parsers
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // necesario para form-data sin archivos
 
 // CORS
 app.use(
@@ -46,6 +47,7 @@ const uploadDir = process.env.NODE_ENV === 'production' ? '/tmp' : './uploads';
 app.use(fileUpload({
   useTempFiles: true,
   tempFileDir: uploadDir,
+  createParentPath: true, // BUG FIX: crea el directorio si no existe (evita que req.body quede undefined)
   debug: false,
 }));
 
