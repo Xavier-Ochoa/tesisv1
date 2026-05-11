@@ -307,6 +307,11 @@ const actualizarPerfil = async (req, res) => {
             return res.status(403).json({ msg: 'Solo puedes actualizar tu propio perfil' });
         }
 
+        // BUG FIX: cuando se envía form-data y express-fileupload falla al crear el
+        // directorio temporal, req.body puede quedar undefined. Nos aseguramos de que
+        // siempre sea al menos un objeto vacío para evitar el crash.
+        req.body = req.body ?? {};
+
         // Bloquear campos inmutables
         const camposBloqueados = ['nombre', 'cedula', 'email', 'correoInstitucional', 'rol'];
         const intentoModificar = camposBloqueados.filter(campo => req.body[campo] !== undefined);
