@@ -20,7 +20,6 @@ import {
 } from '../controllers/proyecto_controller.js';
 import { verificarTokenJWT, verificarDocente } from '../middlewares/JWT.js';
 
-// ⭐ IMPORTAR VALIDACIONES
 import { 
   validarCrearProyecto, 
   validarActualizarProyecto,
@@ -39,18 +38,18 @@ router.get('/carrera/:carrera', listarProyectosPorCarrera);
 router.get('/estudiante/:id', listarProyectosPorEstudiante);
 router.get('/:id', obtenerProyecto);
 
-// ===== RUTAS PROTEGIDAS CON VALIDACIONES =====
+// ===== RUTAS PROTEGIDAS =====
 
-// Crear proyecto (CON VALIDACIÓN)
+// Crear proyecto
 router.post(
   '/', 
-  verificarTokenJWT,           // 1. Verificar autenticación
-  validarCrearProyecto,        // 2. Validar datos
-  manejarErroresValidacion,    // 3. Manejar errores
-  crearProyecto                // 4. Ejecutar controlador
+  verificarTokenJWT,
+  validarCrearProyecto,
+  manejarErroresValidacion,
+  crearProyecto
 );
 
-// Actualizar proyecto (CON VALIDACIÓN)
+// Actualizar proyecto
 router.put(
   '/:id', 
   verificarTokenJWT,
@@ -62,13 +61,11 @@ router.put(
 // Eliminar proyecto
 router.delete('/:id', verificarTokenJWT, eliminarProyecto);
 
-// Agregar like
+// Likes
 router.post('/:id/like', verificarTokenJWT, agregarLike);
-
-// Quitar like
 router.delete('/:id/like', verificarTokenJWT, quitarLike);
 
-// Agregar comentario (CON VALIDACIÓN)
+// Comentarios
 router.post(
   '/:id/comentarios', 
   verificarTokenJWT,
@@ -76,18 +73,19 @@ router.post(
   manejarErroresValidacion,
   agregarComentario
 );
-
-// Eliminar comentario
 router.delete('/:id/comentarios/:comentarioId', verificarTokenJWT, eliminarComentario);
 
-export default router;
 // ===== RUTAS DE COLABORADORES (solo docentes) =====
+// BUG FIX: Estas rutas estaban definidas DESPUÉS del export default router,
+// lo que es un error estructural. Movidas aquí, antes del export.
 
-// Listar colaboradores de un proyecto (cualquier usuario autenticado puede consultar)
+// Listar colaboradores (cualquier usuario autenticado)
 router.get('/:id/colaboradores', verificarTokenJWT, listarColaboradores);
 
-// Agregar colaborador (solo docente autor del proyecto)
+// Agregar colaborador (solo docente autor)
 router.post('/:id/colaboradores', verificarTokenJWT, verificarDocente, agregarColaborador);
 
-// Eliminar colaborador (solo docente autor del proyecto)
+// Eliminar colaborador (solo docente autor)
 router.delete('/:id/colaboradores/:colaboradorId', verificarTokenJWT, verificarDocente, eliminarColaborador);
+
+export default router;
