@@ -116,7 +116,8 @@ export const actualizarProyectoAdmin = async (req, res) => {
       'titulo', 'descripcion', 'categoria', 'asignatura',
       'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio',
       'enlaceDemo', 'tags', 'carrera', 'nivel', 'publico',
-      'docente', 'estado'
+      'enlaceDemo', 'tags', 'carrera', 'nivel', 'publico',
+      'estado'
     ];
 
     const datosActualizacion = {};
