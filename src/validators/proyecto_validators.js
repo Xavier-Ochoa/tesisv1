@@ -145,15 +145,6 @@ export const validarCrearProyecto = [
       throw new Error('El campo público debe ser verdadero o falso');
     }),
 
-  body('docente.nombre')
-    .optional()
-    .trim()
-    .isLength({ max: 200 }).withMessage('El nombre del docente no puede exceder 200 caracteres'),
-
-  body('docente.email')
-    .optional()
-    .trim()
-    .isEmail().withMessage('El email del docente debe ser válido')
 ];
 
 /**
