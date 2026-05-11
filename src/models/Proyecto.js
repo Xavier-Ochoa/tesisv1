@@ -50,12 +50,6 @@ const proyectoSchema = new Schema(
       ref: 'Usuario',
     }],
 
-    // Docente responsable
-    docente: {
-      nombre: String,
-      email: String,
-    },
-
     // Fechas del proyecto
     fechaInicio: {
       type: Date,
