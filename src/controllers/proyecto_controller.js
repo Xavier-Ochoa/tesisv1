@@ -232,7 +232,7 @@ export const actualizarProyecto = async (req, res) => {
     const camposPermitidos = [
       'titulo', 'descripcion', 'categoria', 'asignatura',
       'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio',
-      'enlaceDemo', 'tags', 'carrera', 'nivel', 'publico', 'docente'
+      'enlaceDemo', 'tags', 'carrera', 'nivel', 'publico'
     ];
 
     const datosActualizacion = {};
