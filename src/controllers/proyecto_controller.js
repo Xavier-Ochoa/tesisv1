@@ -142,6 +142,9 @@ export const crearProyecto = async (req, res) => {
     const usuarioId = req.estudianteBDD._id;
     const rolUsuario = req.estudianteBDD.rol;
 
+    // BUG FIX: form-data puede dejar req.body undefined si el directorio temp no existe
+    req.body = req.body ?? {};
+
     // Según la tesis:
     // - Docente: puede crear y publicar proyectos directamente sin requerir validación del admin
     // - Estudiante: crea en estado 'en_progreso', el admin debe publicarlo
@@ -200,6 +203,9 @@ export const actualizarProyecto = async (req, res) => {
   try {
     const { id } = req.params;
     const estudianteId = req.estudianteBDD._id;
+
+    // BUG FIX: form-data puede dejar req.body undefined si el directorio temp no existe
+    req.body = req.body ?? {};
 
     const proyecto = await Proyecto.findById(id);
 
