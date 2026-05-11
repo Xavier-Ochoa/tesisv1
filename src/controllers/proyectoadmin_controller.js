@@ -107,6 +107,22 @@ export const actualizarProyectoAdmin = async (req, res) => {
       });
     }
 
+    // BUG FIX: Construir objeto de actualización explícito.
+    // El admin puede actualizar estado además de los campos normales.
+    const camposPermitidos = [
+      'titulo', 'descripcion', 'categoria', 'asignatura',
+      'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio',
+      'enlaceDemo', 'tags', 'carrera', 'nivel', 'publico',
+      'docente', 'estado'
+    ];
+
+    const datosActualizacion = {};
+    for (const campo of camposPermitidos) {
+      if (req.body[campo] !== undefined) {
+        datosActualizacion[campo] = req.body[campo];
+      }
+    }
+
     // Manejar actualización de imagen
     if (req.files?.imagen) {
       // Eliminar imagen anterior de Cloudinary si existe
@@ -125,14 +141,15 @@ export const actualizarProyectoAdmin = async (req, res) => {
         req.files.imagen.tempFilePath,
         'Proyectos'
       );
-      
-      req.body.imagenes = [secure_url];
-      req.body.imagenesID = [public_id];
+
+      // BUG FIX: Asignar al objeto explícito, no a req.body
+      datosActualizacion.imagenes = [secure_url];
+      datosActualizacion.imagenesID = [public_id];
     }
 
     const proyectoActualizado = await Proyecto.findByIdAndUpdate(
       id,
-      req.body,
+      { $set: datosActualizacion },
       { new: true, runValidators: true }
     ).populate('autor', 'nombre apellido carrera email')
      .populate('colaboradores', 'nombre apellido carrera');
