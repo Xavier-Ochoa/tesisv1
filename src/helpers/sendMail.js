@@ -9,65 +9,66 @@ import { sendMail } from "../config/nodemailer.js"
 const sendMailToRegister = (userMail, token) => {
     return sendMail(
         userMail,
-        "Bienvenido a ESFOT - Sistema de Proyectos Académicos 🎓📚",
+        "Bienvenido a ESFOT — Tu token de verificación 🎓",
         `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <h1 style="color: #003366;">¡Bienvenido a ESFOT!</h1>
-                    <p style="color: #666; font-size: 16px;">Sistema de Gestión de Proyectos Académicos</p>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 28px; border: 1px solid #e0e0e0; border-radius: 12px; background: #ffffff;">
+
+                <!-- HEADER -->
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <h1 style="color: #003366; margin: 0 0 6px 0;">¡Bienvenido a ESFOT!</h1>
+                    <p style="color: #666; font-size: 15px; margin: 0;">Sistema de Gestión de Proyectos Académicos · EPN</p>
                 </div>
-                
-                <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    <h2 style="color: #003366; margin-top: 0;">Confirma tu cuenta</h2>
-                    <p style="color: #333; line-height: 1.6;">
-                        Hola, gracias por registrarte en nuestro sistema de proyectos académicos. 
-                        Para activar tu cuenta y comenzar a publicar tus proyectos, 
-                        haz clic en el siguiente botón:
+
+                <p style="color: #333; font-size: 15px; line-height: 1.7; margin-bottom: 24px;">
+                    Hola, gracias por registrarte. Para activar tu cuenta copia el token de verificación
+                    que aparece a continuación e ingrésalo en la aplicación cuando se te solicite.
+                </p>
+
+                <!-- TOKEN BOX -->
+                <div style="background: #f0f4ff; border: 2px dashed #003366; border-radius: 10px; padding: 28px 20px; text-align: center; margin: 0 0 24px 0;">
+                    <p style="margin: 0 0 10px 0; font-size: 13px; color: #555; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">
+                        🔑 Tu token de verificación es:
                     </p>
-                    
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="${process.env.URL_BACKEND}api/auth/confirm/${token}" 
-                           style="background-color: #003366; color: white; padding: 15px 40px; 
-                                  text-decoration: none; border-radius: 5px; font-size: 16px; 
-                                  display: inline-block; font-weight: bold;">
-                            ✅ Confirmar mi cuenta
-                        </a>
-                    </div>
-                    
-                    <p style="color: #666; font-size: 14px; margin-top: 20px;">
-                        Si el botón no funciona, copia y pega este enlace en tu navegador:
-                        <br>
-                        <a href="${process.env.URL_BACKEND}api/auth/confirm/${token}" 
-                           style="color: #003366; word-break: break-all;">
-                            ${process.env.URL_BACKEND}auth/confirm/${token}
-                        </a>
+                    <p style="
+                        margin: 0;
+                        font-size: 26px;
+                        font-weight: 700;
+                        letter-spacing: 0.18em;
+                        color: #003366;
+                        font-family: 'Courier New', Courier, monospace;
+                        word-break: break-all;
+                        background: #ffffff;
+                        border-radius: 6px;
+                        padding: 14px 18px;
+                        display: inline-block;
+                        border: 1px solid #c5d3f0;
+                    ">
+                        ${token}
+                    </p>
+                    <p style="margin: 14px 0 0 0; font-size: 12px; color: #888;">
+                        Cópialo exactamente como aparece, respetando mayúsculas y minúsculas.
                     </p>
                 </div>
-                
-                <div style="margin-top: 20px; padding: 15px; background-color: #e8f4f8; border-radius: 8px;">
-                    <p style="margin: 0; color: #333; font-size: 14px;">
-                        <strong>🎯 Próximos pasos:</strong>
-                    </p>
-                    <ul style="color: #666; font-size: 14px; line-height: 1.8;">
-                        <li>Confirma tu cuenta haciendo clic en el botón</li>
-                        <li>Inicia sesión en el sistema</li>
-                        <li>Publica tus proyectos académicos y extracurriculares</li>
-                        <li>Comparte tu trabajo con la comunidad ESFOT</li>
-                    </ul>
+
+                <!-- INSTRUCCIONES -->
+                <div style="background: #e8f4f8; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px;">
+                    <p style="margin: 0 0 8px 0; color: #003366; font-size: 14px; font-weight: 700;">🎯 ¿Cómo usarlo?</p>
+                    <ol style="color: #444; font-size: 14px; line-height: 1.9; margin: 0; padding-left: 18px;">
+                        <li>Copia el token de la caja azul de arriba.</li>
+                        <li>Abre la aplicación y ve a <strong>Verificar cuenta</strong>.</li>
+                        <li>Pega el token en el campo indicado y confirma.</li>
+                        <li>¡Listo! Ya puedes iniciar sesión y publicar tus proyectos.</li>
+                    </ol>
                 </div>
-                
-                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
-                
-                <footer style="text-align: center; color: #999; font-size: 12px;">
-                    <p style="margin: 5px 0;">
-                        <strong style="color: #003366;">Escuela de Formación de Tecnólogos (ESFOT)</strong>
-                    </p>
-                    <p style="margin: 5px 0;">Escuela Politécnica Nacional</p>
-                    <p style="margin: 5px 0;">Sistema de Gestión de Proyectos Académicos</p>
-                    <p style="margin: 15px 0 5px 0; color: #666;">
-                        Si no solicitaste esta cuenta, puedes ignorar este mensaje.
-                    </p>
+
+                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 24px 0;">
+
+                <footer style="text-align: center; color: #aaa; font-size: 12px;">
+                    <p style="margin: 4px 0;"><strong style="color: #003366;">Escuela de Formación de Tecnólogos (ESFOT)</strong></p>
+                    <p style="margin: 4px 0;">Escuela Politécnica Nacional</p>
+                    <p style="margin: 12px 0 0 0; color: #bbb;">Si no solicitaste esta cuenta, ignora este mensaje.</p>
                 </footer>
+
             </div>
         `
     )
@@ -82,67 +83,75 @@ const sendMailToRegister = (userMail, token) => {
 const sendMailToRecoveryPassword = (userMail, token) => {
     return sendMail(
         userMail,
-        "Recupera tu contraseña - ESFOT 🔐",
+        "Recupera tu contraseña — Token de restablecimiento 🔐",
         `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                <div style="text-align: center; margin-bottom: 20px;">
-                    <h1 style="color: #d32f2f;">🔐 Recuperación de Contraseña</h1>
-                    <p style="color: #666; font-size: 16px;">Sistema de Proyectos ESFOT - EPN</p>
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 28px; border: 1px solid #e0e0e0; border-radius: 12px; background: #ffffff;">
+
+                <!-- HEADER -->
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <h1 style="color: #d32f2f; margin: 0 0 6px 0;">🔐 Recuperación de Contraseña</h1>
+                    <p style="color: #666; font-size: 15px; margin: 0;">Sistema de Proyectos ESFOT · EPN</p>
                 </div>
-                
-                <div style="background-color: #fff3e0; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ff9800;">
-                    <h2 style="color: #e65100; margin-top: 0;">Restablecer Contraseña</h2>
-                    <p style="color: #333; line-height: 1.6;">
-                        Has solicitado restablecer tu contraseña. Si no fuiste tú, 
-                        puedes ignorar este mensaje de forma segura.
+
+                <p style="color: #333; font-size: 15px; line-height: 1.7; margin-bottom: 24px;">
+                    Has solicitado restablecer tu contraseña. Copia el token que aparece
+                    a continuación e ingrésalo en la aplicación para crear una nueva contraseña.
+                    Si no fuiste tú, ignora este mensaje — tu contraseña no cambiará.
+                </p>
+
+                <!-- TOKEN BOX -->
+                <div style="background: #fff5f5; border: 2px dashed #d32f2f; border-radius: 10px; padding: 28px 20px; text-align: center; margin: 0 0 24px 0;">
+                    <p style="margin: 0 0 10px 0; font-size: 13px; color: #555; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">
+                        🔑 Tu token de restablecimiento es:
                     </p>
-                    <p style="color: #333; line-height: 1.6;">
-                        Para crear una nueva contraseña, haz clic en el siguiente botón:
+                    <p style="
+                        margin: 0;
+                        font-size: 26px;
+                        font-weight: 700;
+                        letter-spacing: 0.18em;
+                        color: #c62828;
+                        font-family: 'Courier New', Courier, monospace;
+                        word-break: break-all;
+                        background: #ffffff;
+                        border-radius: 6px;
+                        padding: 14px 18px;
+                        display: inline-block;
+                        border: 1px solid #f5c5c5;
+                    ">
+                        ${token}
                     </p>
-                    
-                    <div style="text-align: center; margin: 30px 0;">
-                        <a href="${process.env.URL_BACKEND}api/auth/recuperarpassword/${token}" 
-                           style="background-color: #d32f2f; color: white; padding: 15px 40px; 
-                                  text-decoration: none; border-radius: 5px; font-size: 16px; 
-                                  display: inline-block; font-weight: bold;">
-                            🔑 Restablecer mi contraseña
-                        </a>
-                    </div>
-                    
-                    <p style="color: #666; font-size: 14px; margin-top: 20px;">
-                        Si el botón no funciona, copia y pega este enlace en tu navegador:
-                        <br>
-                        <a href="${process.env.URL_BACKEND}api/auth/recuperarpassword/${token}" 
-                           style="color: #d32f2f; word-break: break-all;">
-                            ${process.env.URL_BACKEND}api/auth/recuperarpassword/${token}
-                        </a>
+                    <p style="margin: 14px 0 0 0; font-size: 12px; color: #888;">
+                        Cópialo exactamente como aparece, respetando mayúsculas y minúsculas.
                     </p>
                 </div>
-                
-                <div style="margin-top: 20px; padding: 15px; background-color: #ffebee; border-radius: 8px; border-left: 4px solid #d32f2f;">
-                    <p style="margin: 0 0 10px 0; color: #333; font-size: 14px;">
-                        <strong>⚠️ Importante:</strong>
-                    </p>
-                    <ul style="color: #666; font-size: 14px; line-height: 1.8; margin: 0; padding-left: 20px;">
-                        <li>Este enlace es válido por <strong>24 horas</strong></li>
-                        <li>Solo puede usarse <strong>una vez</strong></li>
-                        <li>Si no solicitaste este cambio, <strong>ignora este email</strong></li>
-                        <li>Tu contraseña actual seguirá siendo válida hasta que la cambies</li>
-                    </ul>
+
+                <!-- INSTRUCCIONES -->
+                <div style="background: #fff3e0; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; border-left: 4px solid #ff9800;">
+                    <p style="margin: 0 0 8px 0; color: #e65100; font-size: 14px; font-weight: 700;">🎯 ¿Cómo usarlo?</p>
+                    <ol style="color: #444; font-size: 14px; line-height: 1.9; margin: 0; padding-left: 18px;">
+                        <li>Copia el token de la caja de arriba.</li>
+                        <li>Abre la aplicación y ve a <strong>Restablecer contraseña</strong>.</li>
+                        <li>Pega el token en el campo indicado.</li>
+                        <li>Escribe y confirma tu nueva contraseña.</li>
+                    </ol>
                 </div>
-                
-                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
-                
-                <footer style="text-align: center; color: #999; font-size: 12px;">
-                    <p style="margin: 5px 0;">
-                        <strong style="color: #003366;">Escuela de Formación de Tecnólogos (ESFOT)</strong>
+
+                <!-- ADVERTENCIA -->
+                <div style="background: #ffebee; border-radius: 8px; padding: 14px 18px; margin-bottom: 24px; border-left: 4px solid #d32f2f;">
+                    <p style="margin: 0; color: #333; font-size: 13px; line-height: 1.8;">
+                        <strong>⚠️ Importante:</strong> este token es de uso único y expira en <strong>24 horas</strong>. 
+                        No lo compartas con nadie.
                     </p>
-                    <p style="margin: 5px 0;">Escuela Politécnica Nacional</p>
-                    <p style="margin: 5px 0;">Sistema de Gestión de Proyectos Académicos</p>
-                    <p style="margin: 15px 0 5px 0; color: #666;">
-                        Por tu seguridad, nunca compartas este enlace con nadie.
-                    </p>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 24px 0;">
+
+                <footer style="text-align: center; color: #aaa; font-size: 12px;">
+                    <p style="margin: 4px 0;"><strong style="color: #003366;">Escuela de Formación de Tecnólogos (ESFOT)</strong></p>
+                    <p style="margin: 4px 0;">Escuela Politécnica Nacional</p>
+                    <p style="margin: 12px 0 0 0; color: #bbb;">Por tu seguridad, nunca compartas este token con nadie.</p>
                 </footer>
+
             </div>
         `
     )
