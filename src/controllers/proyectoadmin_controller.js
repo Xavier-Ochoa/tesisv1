@@ -98,6 +98,9 @@ export const actualizarProyectoAdmin = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // BUG FIX: form-data puede dejar req.body undefined si el directorio temp no existe
+    req.body = req.body ?? {};
+
     const proyecto = await Proyecto.findById(id);
 
     if (!proyecto) {
