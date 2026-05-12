@@ -11,9 +11,10 @@ import {
   actualizarPerfil,
   actualizarPassword,
   getUnsplashImage,
-  fetchQuoteController
+  fetchQuoteController,
+  cambiarRol,
 } from '../controllers/auth_controller.js';
-import { verificarTokenJWT } from '../middlewares/JWT.js';
+import { verificarTokenJWT, verificarAdmin } from '../middlewares/JWT.js';
 import { validarRegistro, validarActualizarPerfil } from '../validators/auth_validators.js';
 import { manejarErroresValidacion } from '../middlewares/validaciones.js';
 
@@ -70,5 +71,10 @@ router.put(
 
 // Cambiar contraseña — el ID se extrae del token, no de la URL
 router.put('/password', verificarTokenJWT, actualizarPassword);
+
+// ===== RUTAS DE ADMINISTRADOR =====
+
+// Cambiar rol de cualquier usuario — solo admin, no puede cambiarse a sí mismo
+router.patch('/usuarios/:id/rol', verificarTokenJWT, verificarAdmin, cambiarRol);
 
 export default router;
