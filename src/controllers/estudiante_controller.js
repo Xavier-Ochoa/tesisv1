@@ -1,16 +1,32 @@
 import Estudiante from '../models/Estudiante.js';
 
 /**
- * Listar estudiantes con filtros opcionales
- * Solo para administradores
- * Filtros disponibles: carrera, semestre, apellido
+ * Listar usuarios con filtros opcionales.
+ * Solo para administradores.
+ *
+ * FIX: el filtro ya no tiene { rol: 'estudiante' } hardcodeado.
+ * Ahora acepta ?rol=estudiante | ?rol=docente | sin param = todos.
+ *
+ * Filtros disponibles: rol, carrera, semestre, apellido
  */
 export const listarEstudiantes = async (req, res) => {
   try {
-    const { carrera, semestre, apellido } = req.query;
+    const { carrera, semestre, apellido, rol } = req.query;
 
-    // Construir filtro dinámico
-    const filtro = {}; // Solo usuarios con rol estudiante
+    // Filtro dinámico — sin rol fijo
+    const filtro = {};
+
+    // Filtro por rol (opcional)
+    if (rol) {
+      const rolesValidos = ['estudiante', 'docente', 'admin'];
+      if (!rolesValidos.includes(rol)) {
+        return res.status(400).json({
+          success: false,
+          message: 'El rol debe ser "estudiante", "docente" o "admin"',
+        });
+      }
+      filtro.rol = rol;
+    }
 
     // Filtro por carrera (búsqueda exacta)
     if (carrera) {
@@ -25,108 +41,154 @@ export const listarEstudiantes = async (req, res) => {
       } else {
         return res.status(400).json({
           success: false,
-          message: 'El semestre debe ser un número entre 1 y 8'
+          message: 'El semestre debe ser un número entre 1 y 8',
         });
       }
     }
 
     // Filtro por apellido (búsqueda parcial - case insensitive)
     if (apellido) {
-      // Usando regex para búsqueda parcial
       filtro.apellido = { $regex: apellido, $options: 'i' };
     }
 
-    // Buscar estudiantes con los filtros aplicados
-    const estudiantes = await Estudiante.find(filtro)
-      .select('nombre apellido email carrera semestre') // Solo campos básicos
-      .sort({ apellido: 1, nombre: 1 }) // Ordenar por apellido y nombre
+    const usuarios = await Estudiante.find(filtro)
+      .select('nombre apellido email carrera semestre rol')
+      .sort({ apellido: 1, nombre: 1 })
       .lean();
 
     res.status(200).json({
       success: true,
-      total: estudiantes.length,
+      total: usuarios.length,
       filtros: {
-        carrera: carrera || 'todos',
+        rol:      rol      || 'todos',
+        carrera:  carrera  || 'todos',
         semestre: semestre || 'todos',
-        apellido: apellido || 'todos'
+        apellido: apellido || 'todos',
       },
-      data: estudiantes
+      data: usuarios,
     });
 
   } catch (error) {
-    console.error('Error al listar estudiantes:', error);
+    console.error('Error al listar usuarios:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al obtener los estudiantes',
-      error: error.message
+      message: 'Error al obtener los usuarios',
+      error: error.message,
     });
   }
 };
 
 /**
- * Obtener un estudiante por ID
- * Solo para administradores
+ * Obtener un usuario por ID.
+ * Solo para administradores.
  */
 export const obtenerEstudiante = async (req, res) => {
   try {
     const { id } = req.params;
 
     const estudiante = await Estudiante.findById(id)
-      .select('-password -token') // Excluir campos sensibles
+      .select('-password -token')
       .lean();
 
     if (!estudiante) {
       return res.status(404).json({
         success: false,
-        message: 'Estudiante no encontrado'
+        message: 'Usuario no encontrado',
       });
     }
 
     res.status(200).json({
       success: true,
-      data: estudiante
+      data: estudiante,
     });
 
   } catch (error) {
-    console.error('Error al obtener estudiante:', error);
+    console.error('Error al obtener usuario:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al obtener el estudiante',
-      error: error.message
+      message: 'Error al obtener el usuario',
+      error: error.message,
     });
   }
 };
 
 /**
- * Obtener estadísticas de estudiantes
- * Solo para administradores
+ * Eliminar cualquier usuario por ID.
+ * Solo para administradores.
+ * El admin NO puede eliminarse a sí mismo.
+ */
+export const eliminarUsuario = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const adminId = req.estudianteBDD._id.toString();
+
+    // Impedir que el admin se elimine a sí mismo
+    if (id === adminId) {
+      return res.status(400).json({
+        success: false,
+        message: 'No puedes eliminar tu propia cuenta de administrador',
+      });
+    }
+
+    const usuario = await Estudiante.findById(id);
+    if (!usuario) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado',
+      });
+    }
+
+    await Estudiante.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: `Usuario ${usuario.nombre} ${usuario.apellido} (${usuario.email}) eliminado correctamente`,
+    });
+
+  } catch (error) {
+    console.error('Error al eliminar usuario:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar el usuario',
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Estadísticas de usuarios.
+ * FIX: ya no filtra solo 'estudiante' — incluye todos los roles.
+ * Solo para administradores.
  */
 export const estadisticasEstudiantes = async (req, res) => {
   try {
-    // Total de estudiantes
-    const totalEstudiantes = await Estudiante.countDocuments({ rol: 'estudiante' });
+    const totalUsuarios = await Estudiante.countDocuments({});
 
-    // Estudiantes por carrera
+    const porRol = await Estudiante.aggregate([
+      { $group: { _id: '$rol', total: { $sum: 1 } } },
+      { $sort: { total: -1 } },
+    ]);
+
     const porCarrera = await Estudiante.aggregate([
       { $match: { rol: 'estudiante' } },
       { $group: { _id: '$carrera', total: { $sum: 1 } } },
-      { $sort: { total: -1 } }
+      { $sort: { total: -1 } },
     ]);
 
-    // Estudiantes por semestre
     const porNivel = await Estudiante.aggregate([
       { $match: { rol: 'estudiante' } },
       { $group: { _id: '$semestre', total: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
+      { $sort: { _id: 1 } },
     ]);
 
     res.status(200).json({
       success: true,
       data: {
-        totalEstudiantes,
+        totalUsuarios,
+        porRol,
         porCarrera,
-        porNivel
-      }
+        porNivel,
+      },
     });
 
   } catch (error) {
@@ -134,7 +196,7 @@ export const estadisticasEstudiantes = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error al obtener estadísticas',
-      error: error.message
+      error: error.message,
     });
   }
 };
