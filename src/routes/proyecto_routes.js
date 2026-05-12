@@ -1,9 +1,12 @@
 import { Router } from 'express';
 import {
   listarProyectos,
+  misProyectos,
   obtenerProyecto,
   crearProyecto,
   actualizarProyecto,
+  publicarProyecto,
+  despublicarProyecto,
   eliminarProyecto,
   listarProyectosPorCategoria,
   listarProyectosPorEstudiante,
@@ -19,55 +22,50 @@ import {
   listarColaboradores,
 } from '../controllers/proyecto_controller.js';
 import { verificarTokenJWT, verificarDocente, verificarTokenOpcional } from '../middlewares/JWT.js';
-
-import { 
-  validarCrearProyecto, 
-  validarActualizarProyecto,
-  validarAgregarComentario 
-} from '../validators/proyecto_validators.js';
+import { validarCrearProyecto, validarActualizarProyecto, validarAgregarComentario } from '../validators/proyecto_validators.js';
 import { manejarErroresValidacion } from '../middlewares/validaciones.js';
 
 const router = Router();
 
-// ===== RUTAS PÚBLICAS =====
-router.get('/', verificarTokenOpcional, listarProyectos);
-router.get('/destacados', proyectosDestacados);
-router.get('/buscar', buscarProyectos);
-router.get('/categoria/:tipo', listarProyectosPorCategoria);
-router.get('/carrera/:carrera', listarProyectosPorCarrera);
-router.get('/estudiante/:id', verificarTokenOpcional, listarProyectosPorEstudiante);
-router.get('/:id', verificarTokenOpcional, obtenerProyecto);
+// ===== RUTAS PÚBLICAS — landing, solo aprobado+publico =====
+router.get('/',                     listarProyectos);
+router.get('/destacados',           proyectosDestacados);
+router.get('/buscar',               buscarProyectos);
+router.get('/categoria/:tipo',      listarProyectosPorCategoria);
+router.get('/carrera/:carrera',     listarProyectosPorCarrera);
+router.get('/estudiante/:id',       listarProyectosPorEstudiante);
+router.get('/:id',                  verificarTokenOpcional, obtenerProyecto);
 
-// ===== RUTAS PROTEGIDAS =====
+// ===== MIS PROYECTOS — usuario logueado ve solo los suyos =====
+router.get('/usuario/mis-proyectos', verificarTokenJWT, misProyectos);
 
-// Crear proyecto
-router.post(
-  '/', 
+// ===== CRUD — usuario logueado =====
+router.post('/',
   verificarTokenJWT,
   validarCrearProyecto,
   manejarErroresValidacion,
   crearProyecto
 );
 
-// Actualizar proyecto
-router.put(
-  '/:id', 
+router.put('/:id',
   verificarTokenJWT,
   validarActualizarProyecto,
   manejarErroresValidacion,
   actualizarProyecto
 );
 
-// Eliminar proyecto
 router.delete('/:id', verificarTokenJWT, eliminarProyecto);
 
-// Likes
-router.post('/:id/like', verificarTokenJWT, agregarLike);
-router.delete('/:id/like', verificarTokenJWT, quitarLike);
+// ===== PUBLICAR / DESPUBLICAR — solo el autor =====
+router.put('/:id/publicar',     verificarTokenJWT, publicarProyecto);
+router.put('/:id/despublicar',  verificarTokenJWT, despublicarProyecto);
 
-// Comentarios
-router.post(
-  '/:id/comentarios', 
+// ===== LIKES =====
+router.post('/:id/like',    verificarTokenJWT, agregarLike);
+router.delete('/:id/like',  verificarTokenJWT, quitarLike);
+
+// ===== COMENTARIOS =====
+router.post('/:id/comentarios',
   verificarTokenJWT,
   validarAgregarComentario,
   manejarErroresValidacion,
@@ -75,17 +73,9 @@ router.post(
 );
 router.delete('/:id/comentarios/:comentarioId', verificarTokenJWT, eliminarComentario);
 
-// ===== RUTAS DE COLABORADORES (solo docentes) =====
-// BUG FIX: Estas rutas estaban definidas DESPUÉS del export default router,
-// lo que es un error estructural. Movidas aquí, antes del export.
-
-// Listar colaboradores (cualquier usuario autenticado)
-router.get('/:id/colaboradores', verificarTokenJWT, listarColaboradores);
-
-// Agregar colaborador (solo docente autor)
-router.post('/:id/colaboradores', verificarTokenJWT, verificarDocente, agregarColaborador);
-
-// Eliminar colaborador (solo docente autor)
-router.delete('/:id/colaboradores/:colaboradorId', verificarTokenJWT, verificarDocente, eliminarColaborador);
+// ===== COLABORADORES — solo docentes =====
+router.get('/:id/colaboradores',                        verificarTokenJWT, listarColaboradores);
+router.post('/:id/colaboradores',                       verificarTokenJWT, verificarDocente, agregarColaborador);
+router.delete('/:id/colaboradores/:colaboradorId',      verificarTokenJWT, verificarDocente, eliminarColaborador);
 
 export default router;
