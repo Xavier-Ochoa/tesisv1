@@ -297,15 +297,13 @@ const perfil = (req, res) => {
  *
  * Campos BLOQUEADOS (inmutables):
  *   nombre, cedula, email / correoInstitucional, rol
+ *
+ * El ID se extrae del token JWT (req.estudianteBDD._id) — no se pasa por URL.
  */
 const actualizarPerfil = async (req, res) => {
     try {
-        const { id } = req.params;
-
-        // Solo el propio usuario puede actualizar su perfil
-        if (req.estudianteBDD._id.toString() !== id) {
-            return res.status(403).json({ msg: 'Solo puedes actualizar tu propio perfil' });
-        }
+        // ID extraído del token, no de la URL
+        const id = req.estudianteBDD._id.toString();
 
         // BUG FIX: cuando se envía form-data y express-fileupload falla al crear el
         // directorio temporal, req.body puede quedar undefined. Nos aseguramos de que
@@ -319,10 +317,6 @@ const actualizarPerfil = async (req, res) => {
             return res.status(400).json({
                 msg: `Los siguientes campos no pueden modificarse: ${intentoModificar.join(', ')}`
             });
-        }
-
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({ msg: `ID inválido: ${id}` });
         }
 
         const usuarioBDD = await Estudiante.findById(id);
@@ -383,9 +377,10 @@ const actualizarPerfil = async (req, res) => {
 };
 
 // ===== ACTUALIZAR CONTRASEÑA =====
+// El ID se extrae del token JWT (req.estudianteBDD._id) — no se pasa por URL.
 const actualizarPassword = async (req, res) => {
     try {
-        const usuarioBDD = await Estudiante.findById(req.estudianteHeader._id);
+        const usuarioBDD = await Estudiante.findById(req.estudianteBDD._id);
         if (!usuarioBDD) return res.status(404).json({ msg: 'Usuario no encontrado' });
 
         const passwordActual = req.body.passwordactual || req.body.contraseñaActual;
