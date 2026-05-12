@@ -33,6 +33,7 @@ app.use(
       'https://poliexpo-esfot.vercel.app',
       'http://localhost:5173',
       'http://localhost:3000',
+      'https://eeceff78-2587-439a-baac-36222b421220-00-3mi5t9dcfexet.kirk.replit.dev/',
       'https://examen-back-v1.vercel.app',
       process.env.URL_FRONTEND || "*"
     ],
