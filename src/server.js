@@ -34,7 +34,7 @@ app.use(
       'http://localhost:5173',
       'http://localhost:3000',
       'http://127.0.0.1:5500',
-      'https://eeceff78-2587-439a-baac-36222b421220-00-3mi5t9dcfexet.kirk.replit.dev/',
+      'https://tesisv-1-main-outputzip--lxoc8888.replit.app',
       'https://examen-back-v1.vercel.app',
       process.env.URL_FRONTEND || "*"
     ],
