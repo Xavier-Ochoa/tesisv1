@@ -1,43 +1,39 @@
 import Proyecto from '../models/Proyecto.js';
 import { subirImagenCloudinary, eliminarImagenCloudinary } from '../helpers/uploadCloudinary.js';
 
-/**
- * CONTROLADOR DE PROYECTOS PARA ADMINISTRADORES
- * Permite ver, editar y gestionar TODOS los proyectos sin importar su estado
- */
-
-// ===== LISTAR TODOS LOS PROYECTOS (ADMIN) =====
+// ===== LISTAR TODOS LOS PROYECTOS — admin, sin restricciones + filtros =====
 export const listarTodosProyectos = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
+    const {
+      page     = 1,
+      limit    = 10,
       estado,
+      publico,
       categoria,
       carrera,
-      sort = '-createdAt'
+      autor,
+      q,
+      sort     = '-createdAt',
     } = req.query;
 
     const filtro = {};
-    
-    // Filtros opcionales
-    if (estado) filtro.estado = estado;
-    if (categoria) filtro.categoria = categoria;
-    if (carrera) filtro.carrera = decodeURIComponent(carrera);
+    if (estado)            filtro.estado    = estado;
+    if (publico !== undefined) filtro.publico = publico === 'true';
+    if (categoria)         filtro.categoria = categoria;
+    if (carrera)           filtro.carrera   = decodeURIComponent(carrera);
+    if (autor)             filtro.autor     = autor;
+    if (q && q.trim())     filtro.$text     = { $search: q.trim() };
 
-    const proyectos = await Proyecto.find(filtro)
-      .populate('autor', 'nombre apellido carrera email')
-      .populate('colaboradores', 'nombre apellido carrera')
-      .sort(sort)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .lean();
-
-    const total = await Proyecto.countDocuments(filtro);
-
-    // Contar proyectos por estado para estadísticas
-    const estadisticas = await Proyecto.aggregate([
-      { $group: { _id: '$estado', count: { $sum: 1 } } }
+    const [proyectos, total, estadisticas] = await Promise.all([
+      Proyecto.find(filtro)
+        .populate('autor', 'nombre apellido carrera email')
+        .populate('colaboradores', 'nombre apellido carrera')
+        .sort(sort)
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit))
+        .lean(),
+      Proyecto.countDocuments(filtro),
+      Proyecto.aggregate([{ $group: { _id: '$estado', count: { $sum: 1 } } }]),
     ]);
 
     res.status(200).json({
@@ -46,18 +42,14 @@ export const listarTodosProyectos = async (req, res) => {
       estadisticas,
       pagination: {
         total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
-        limit: parseInt(limit),
+        page:       parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        limit:      parseInt(limit),
       },
     });
   } catch (error) {
     console.error('Error al listar proyectos (admin):', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener los proyectos',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al obtener los proyectos', error: error.message });
   }
 };
 
@@ -65,89 +57,46 @@ export const listarTodosProyectos = async (req, res) => {
 export const obtenerProyectoAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-
     const proyecto = await Proyecto.findById(id)
       .populate('autor', 'nombre apellido carrera email')
       .populate('colaboradores', 'nombre apellido carrera')
       .populate('comentarios.estudiante', 'nombre apellido');
-
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
-    }
-
-    res.status(200).json({
-      success: true,
-      data: proyecto,
-    });
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    res.status(200).json({ success: true, data: proyecto });
   } catch (error) {
-    console.error('Error al obtener proyecto (admin):', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener el proyecto',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al obtener el proyecto', error: error.message });
   }
 };
 
-// ===== ACTUALIZAR PROYECTO (ADMIN) =====
-
+// ===== ACTUALIZAR PROYECTO (ADMIN) — solo datos, no estado =====
 export const actualizarProyectoAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-
-    // BUG FIX: form-data puede dejar req.body undefined si el directorio temp no existe
     req.body = req.body ?? {};
 
     const proyecto = await Proyecto.findById(id);
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
 
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
-    }
-
-    // BUG FIX: Construir objeto de actualización explícito.
-    // El admin puede actualizar estado además de los campos normales.
+    // El admin edita datos pero NO cambia estado desde aquí (usa aprobar/rechazar)
     const camposPermitidos = [
       'titulo', 'descripcion', 'categoria', 'asignatura',
       'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio',
-      'enlaceDemo', 'tags', 'carrera', 'nivel', 'publico',
-      'enlaceDemo', 'tags', 'carrera', 'nivel', 'publico',
-      'estado'
+      'enlaceDemo', 'tags', 'carrera', 'nivel',
     ];
 
     const datosActualizacion = {};
     for (const campo of camposPermitidos) {
-      if (req.body[campo] !== undefined) {
-        datosActualizacion[campo] = req.body[campo];
-      }
+      if (req.body[campo] !== undefined) datosActualizacion[campo] = req.body[campo];
     }
 
-    // Manejar actualización de imagen
     if (req.files?.imagen) {
-      // Eliminar imagen anterior de Cloudinary si existe
-      if (proyecto.imagenesID && proyecto.imagenesID.length > 0) {
-        for (const publicId of proyecto.imagenesID) {
-          try {
-            await eliminarImagenCloudinary(publicId);
-          } catch (error) {
-            console.error('Error al eliminar imagen de Cloudinary:', error);
-          }
+      if (proyecto.imagenesID?.length > 0) {
+        for (const pid of proyecto.imagenesID) {
+          try { await eliminarImagenCloudinary(pid); } catch (e) { console.error(e); }
         }
       }
-
-      // Subir nueva imagen
-      const { secure_url, public_id } = await subirImagenCloudinary(
-        req.files.imagen.tempFilePath,
-        'Proyectos'
-      );
-
-      // BUG FIX: Asignar al objeto explícito, no a req.body
-      datosActualizacion.imagenes = [secure_url];
+      const { secure_url, public_id } = await subirImagenCloudinary(req.files.imagen.tempFilePath, 'Proyectos');
+      datosActualizacion.imagenes   = [secure_url];
       datosActualizacion.imagenesID = [public_id];
     }
 
@@ -158,18 +107,9 @@ export const actualizarProyectoAdmin = async (req, res) => {
     ).populate('autor', 'nombre apellido carrera email')
      .populate('colaboradores', 'nombre apellido carrera');
 
-    res.status(200).json({
-      success: true,
-      message: 'Proyecto actualizado exitosamente',
-      data: proyectoActualizado,
-    });
+    res.status(200).json({ success: true, message: 'Proyecto actualizado', data: proyectoActualizado });
   } catch (error) {
-    console.error('Error al actualizar proyecto (admin):', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar el proyecto',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al actualizar el proyecto', error: error.message });
   }
 };
 
@@ -177,214 +117,100 @@ export const actualizarProyectoAdmin = async (req, res) => {
 export const eliminarProyectoAdmin = async (req, res) => {
   try {
     const { id } = req.params;
-
     const proyecto = await Proyecto.findById(id);
-
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
-    }
-
-    // Eliminar imágenes de Cloudinary si existen
-    if (proyecto.imagenesID && proyecto.imagenesID.length > 0) {
-      for (const publicId of proyecto.imagenesID) {
-        try {
-          await eliminarImagenCloudinary(publicId);
-        } catch (error) {
-          console.error('Error al eliminar imagen de Cloudinary:', error);
-        }
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    if (proyecto.imagenesID?.length > 0) {
+      for (const pid of proyecto.imagenesID) {
+        try { await eliminarImagenCloudinary(pid); } catch (e) { console.error(e); }
       }
     }
-
     await Proyecto.findByIdAndDelete(id);
-
-    res.status(200).json({
-      success: true,
-      message: 'Proyecto eliminado exitosamente',
-    });
+    res.status(200).json({ success: true, message: 'Proyecto eliminado exitosamente' });
   } catch (error) {
-    console.error('Error al eliminar proyecto (admin):', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar el proyecto',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al eliminar el proyecto', error: error.message });
   }
 };
 
-// ===== PUBLICAR PROYECTO =====
-export const publicarProyecto = async (req, res) => {
+// ===== APROBAR PROYECTO (ADMIN) =====
+export const aprobarProyecto = async (req, res) => {
   try {
     const { id } = req.params;
-
     const proyecto = await Proyecto.findById(id);
-
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    if (proyecto.estado === 'aprobado') {
+      return res.status(400).json({ success: false, message: 'El proyecto ya está aprobado' });
     }
-
-    if (proyecto.estado === 'publicado') {
-      return res.status(400).json({
-        success: false,
-        message: 'El proyecto ya está publicado',
-      });
-    }
-
-    proyecto.estado = 'publicado';
+    proyecto.estado        = 'aprobado';
+    proyecto.motivoRechazo = '';   // limpiar si antes fue rechazado
     await proyecto.save();
-
     res.status(200).json({
       success: true,
-      message: 'Proyecto publicado exitosamente. Ahora es visible para todos los usuarios.',
+      message: 'Proyecto aprobado. El autor ya puede publicarlo.',
       data: proyecto,
     });
   } catch (error) {
-    console.error('Error al publicar proyecto:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al publicar el proyecto',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al aprobar el proyecto', error: error.message });
   }
 };
 
-// ===== DESPUBLICAR PROYECTO =====
-export const despublicarProyecto = async (req, res) => {
+// ===== RECHAZAR PROYECTO (ADMIN) =====
+export const rechazarProyecto = async (req, res) => {
   try {
     const { id } = req.params;
-
+    const { motivo } = req.body;
     const proyecto = await Proyecto.findById(id);
-
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    if (proyecto.estado === 'rechazado') {
+      return res.status(400).json({ success: false, message: 'El proyecto ya está rechazado' });
     }
-
-    if (proyecto.estado === 'en_progreso') {
-      return res.status(400).json({
-        success: false,
-        message: 'El proyecto ya está en estado "en_progreso"',
-      });
-    }
-
-    proyecto.estado = 'en_progreso';
+    proyecto.estado        = 'rechazado';
+    proyecto.publico       = false;   // si estaba publicado, se despublica automáticamente
+    proyecto.motivoRechazo = motivo || '';
     await proyecto.save();
-
     res.status(200).json({
       success: true,
-      message: 'Proyecto despublicado. Ahora solo es visible para el autor y administradores.',
+      message: 'Proyecto rechazado.',
       data: proyecto,
     });
   } catch (error) {
-    console.error('Error al despublicar proyecto:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al despublicar el proyecto',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al rechazar el proyecto', error: error.message });
   }
 };
 
-// ===== FILTROS ADMIN =====
+// ===== FILTROS ADMIN (mantener para compatibilidad) =====
 
 export const listarProyectosPorCategoriaAdmin = async (req, res) => {
   try {
     const { tipo } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-
+    const { page = 1, limit = 10, estado, publico } = req.query;
     if (!['academico', 'extracurricular'].includes(tipo)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Tipo de categoría inválida',
-      });
+      return res.status(400).json({ success: false, message: 'Categoría inválida' });
     }
-
-    const proyectos = await Proyecto.find({ categoria: tipo })
-      .populate('autor', 'nombre apellido carrera')
-      .sort('-createdAt')
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-
-    const total = await Proyecto.countDocuments({ categoria: tipo });
-
-    res.status(200).json({
-      success: true,
-      data: proyectos,
-      pagination: {
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
-      },
-    });
+    const filtro = { categoria: tipo };
+    if (estado)  filtro.estado  = estado;
+    if (publico !== undefined) filtro.publico = publico === 'true';
+    const [proyectos, total] = await Promise.all([
+      Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt')
+        .limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
+      Proyecto.countDocuments(filtro),
+    ]);
+    res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / limit) } });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener proyectos',
-      error: error.message,
-    });
-  }
-};
-
-export const listarProyectosPorCarreraAdmin = async (req, res) => {
-  try {
-    const { carrera } = req.params;
-    const carreraDecodificada = decodeURIComponent(carrera);
-
-    const proyectos = await Proyecto.find({ carrera: carreraDecodificada })
-      .populate('autor', 'nombre apellido carrera')
-      .sort('-createdAt');
-
-    res.status(200).json({
-      success: true,
-      data: proyectos,
-    });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener proyectos',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
   }
 };
 
 export const buscarProyectosAdmin = async (req, res) => {
   try {
-    const { q } = req.query;
-
-    if (!q || q.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Debe proporcionar un término de búsqueda',
-      });
-    }
-
-    const proyectos = await Proyecto.find({
-      $text: { $search: q }
-    })
-      .populate('autor', 'nombre apellido carrera')
-      .limit(50);
-
-    res.status(200).json({
-      success: true,
-      data: proyectos,
-      total: proyectos.length,
-    });
+    const { q, estado, publico } = req.query;
+    if (!q?.trim()) return res.status(400).json({ success: false, message: 'Proporciona un término de búsqueda' });
+    const filtro = { $text: { $search: q.trim() } };
+    if (estado)  filtro.estado  = estado;
+    if (publico !== undefined) filtro.publico = publico === 'true';
+    const proyectos = await Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').limit(50);
+    res.status(200).json({ success: true, data: proyectos, total: proyectos.length });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al buscar proyectos',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al buscar proyectos', error: error.message });
   }
 };
 
@@ -394,17 +220,8 @@ export const proyectosDestacadosAdmin = async (req, res) => {
       .populate('autor', 'nombre apellido carrera')
       .sort('-vistas')
       .limit(10);
-
-    res.status(200).json({
-      success: true,
-      data: proyectos,
-    });
+    res.status(200).json({ success: true, data: proyectos });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener proyectos destacados',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al obtener proyectos destacados', error: error.message });
   }
 };
