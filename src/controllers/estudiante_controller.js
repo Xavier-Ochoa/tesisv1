@@ -10,7 +10,7 @@ export const listarEstudiantes = async (req, res) => {
     const { carrera, semestre, apellido } = req.query;
 
     // Construir filtro dinámico
-    const filtro = { rol: 'estudiante' }; // Solo usuarios con rol estudiante
+    const filtro = {}; // Solo usuarios con rol estudiante
 
     // Filtro por carrera (búsqueda exacta)
     if (carrera) {
