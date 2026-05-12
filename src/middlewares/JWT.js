@@ -110,10 +110,41 @@ const verificarDocenteOAdmin = (req, res, next) => {
     next()
 }
 
+/**
+ * Middleware de token OPCIONAL.
+ * Si hay token válido lo decodifica y adjunta req.estudianteBDD.
+ * Si no hay token (o es inválido) simplemente continúa sin bloquear.
+ * Útil para rutas públicas que necesitan saber si el usuario es el autor.
+ */
+const verificarTokenOpcional = async (req, res, next) => {
+    const { authorization } = req.headers
+    if (!authorization) return next()
+
+    try {
+        const token = authorization.split(' ')[1]
+        if (!token) return next()
+
+        const enBlacklist = await TokenBlacklist.findOne({ token })
+        if (enBlacklist) return next()
+
+        const { id } = jwt.verify(token, process.env.JWT_SECRET)
+        const estudianteBDD = await Estudiante.findById(id).lean().select('-password +estado +confirmEmail')
+        if (estudianteBDD) {
+            req.estudianteBDD    = estudianteBDD
+            req.estudianteHeader = estudianteBDD
+            req.tokenActual      = token
+        }
+    } catch {
+        // Token inválido o expirado — simplemente ignorar y continuar
+    }
+    next()
+}
+
 export {
     crearTokenJWT,
     obtenerExpiracionToken,
     verificarTokenJWT,
+    verificarTokenOpcional,
     verificarAdmin,
     verificarDocente,
     verificarDocenteOAdmin,
