@@ -60,11 +60,17 @@ const proyectoSchema = new Schema(
       type: Date,
     },
 
-    // Estado del proyecto - CAMBIO: default ahora es "en_progreso"
+    // Estado del proyecto
     estado: {
       type: String,
-      enum: ['en_progreso', 'publicado'],
-      default: 'en_progreso',
+      enum: ['pendiente', 'aprobado', 'rechazado'],
+      default: 'pendiente',
+    },
+
+    // Motivo de rechazo (solo cuando estado === 'rechazado')
+    motivoRechazo: {
+      type: String,
+      default: '',
     },
 
     // Recursos multimedia - CAMBIO: estructura simplificada con publicId
