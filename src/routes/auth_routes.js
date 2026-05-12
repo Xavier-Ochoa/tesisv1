@@ -15,7 +15,12 @@ import {
   cambiarRol,
 } from '../controllers/auth_controller.js';
 import { verificarTokenJWT, verificarAdmin } from '../middlewares/JWT.js';
-import { validarRegistro, validarActualizarPerfil } from '../validators/auth_validators.js';
+import {
+  validarRegistro,
+  validarActualizarPerfil,
+  validarCambiarPassword,
+  validarNuevoPassword,
+} from '../validators/auth_validators.js';
 import { manejarErroresValidacion } from '../middlewares/validaciones.js';
 
 const router = Router();
@@ -46,7 +51,12 @@ router.get('/confirm/:token', confirmarMail);
 // Recuperación de contraseña
 router.post('/recuperarpassword', recuperarPassword);
 router.get('/recuperarpassword/:token', comprobarTokenPasword);
-router.post('/nuevopassword/:token', crearNuevoPassword);
+router.post(
+  '/nuevopassword/:token',
+  validarNuevoPassword,
+  manejarErroresValidacion,
+  crearNuevoPassword
+);
 
 // Servicios adicionales
 router.get('/random-image', getUnsplashImage);
@@ -70,7 +80,13 @@ router.put(
 );
 
 // Cambiar contraseña — el ID se extrae del token, no de la URL
-router.put('/password', verificarTokenJWT, actualizarPassword);
+router.put(
+  '/password',
+  verificarTokenJWT,
+  validarCambiarPassword,
+  manejarErroresValidacion,
+  actualizarPassword
+);
 
 // ===== RUTAS DE ADMINISTRADOR =====
 
