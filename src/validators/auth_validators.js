@@ -2,6 +2,19 @@ import { body } from 'express-validator';
 import Estudiante from '../models/Estudiante.js';
 
 /**
+ * Reglas reutilizables para validar una contraseña nueva
+ * Se aplican en: cambiarPassword (logueado) y crearNuevoPassword (recuperación)
+ */
+const reglasPassword = (campo) =>
+  body(campo)
+    .notEmpty().withMessage('La contraseña es obligatoria')
+    .isLength({ min: 8, max: 12 }).withMessage('La contraseña debe tener entre 8 y 12 caracteres')
+    .matches(/[A-Z]/).withMessage('La contraseña debe contener al menos una letra mayúscula')
+    .matches(/[a-z]/).withMessage('La contraseña debe contener al menos una letra minúscula')
+    .matches(/[0-9]/).withMessage('La contraseña debe contener al menos un número')
+    .matches(/[^A-Za-z0-9]/).withMessage('La contraseña debe contener al menos un símbolo (ej: @, #, !)');
+
+/**
  * Validaciones para el endpoint de REGISTRO
  *
  * Campos obligatorios: nombre, apellido, cedula, correoInstitucional (o email), contraseña (o password), rol
@@ -119,4 +132,59 @@ export const validarActualizarPerfil = [
   body('rol')
     .not().exists()
     .withMessage('El rol no puede modificarse'),
+];
+
+/**
+ * Validaciones para CAMBIAR CONTRASEÑA (usuario logueado)
+ * PUT /api/auth/password
+ * Body: passwordactual (o contraseñaActual), passwordnuevo (o contraseñaNueva), confirmarPassword
+ *
+ * Acepta los alias que ya usa el controlador:
+ *   passwordactual   | contraseñaActual
+ *   passwordnuevo    | contraseñaNueva
+ */
+export const validarCambiarPassword = [
+
+  // Contraseña actual — solo verificar que viene (el controlador la compara contra la BDD)
+  body(['passwordactual', 'contraseñaActual'])
+    .if((value, { req }) =>
+      req.body.passwordactual === undefined && req.body['contraseñaActual'] === undefined
+    )
+    .notEmpty().withMessage('La contraseña actual es obligatoria'),
+
+  // Nueva contraseña — aplicar todas las reglas de seguridad
+  reglasPassword('passwordnuevo'),
+  reglasPassword('contraseñaNueva'),
+
+  // Confirmación — debe coincidir con la nueva contraseña
+  body('confirmarPassword')
+    .optional()
+    .custom((value, { req }) => {
+      const nueva = req.body.passwordnuevo || req.body['contraseñaNueva'];
+      if (value && value !== nueva) {
+        throw new Error('Las contraseñas no coinciden');
+      }
+      return true;
+    }),
+];
+
+/**
+ * Validaciones para CREAR NUEVA CONTRASEÑA tras recuperación (usuario NO logueado)
+ * POST /api/auth/nuevopassword/:token
+ * Body: password, confirmpassword
+ */
+export const validarNuevoPassword = [
+
+  // Nueva contraseña — aplicar todas las reglas de seguridad
+  reglasPassword('password'),
+
+  // Confirmación — obligatoria y debe coincidir
+  body('confirmpassword')
+    .notEmpty().withMessage('Debes confirmar la nueva contraseña')
+    .custom((value, { req }) => {
+      if (value !== req.body.password) {
+        throw new Error('Las contraseñas no coinciden');
+      }
+      return true;
+    }),
 ];
