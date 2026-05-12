@@ -397,6 +397,66 @@ const actualizarPassword = async (req, res) => {
     }
 };
 
+// ===== CAMBIAR ROL DE USUARIO — solo admin =====
+/**
+ * Permite a un administrador cambiar el rol de cualquier otro usuario.
+ * El admin NO puede modificar su propio rol.
+ *
+ * PATCH /api/auth/rol/:id
+ * Body: { rol: 'estudiante' | 'docente' | 'admin' }
+ * Requiere: verificarTokenJWT + verificarAdmin
+ */
+const cambiarRol = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { rol } = req.body;
+
+        // Validar que se envió el campo rol
+        if (!rol) {
+            return res.status(400).json({ msg: 'Debes enviar el campo "rol"' });
+        }
+
+        // Validar que el rol sea uno de los permitidos
+        const rolesPermitidos = ['estudiante', 'docente', 'admin'];
+        if (!rolesPermitidos.includes(rol)) {
+            return res.status(400).json({
+                msg: `Rol inválido. Los roles permitidos son: ${rolesPermitidos.join(', ')}`
+            });
+        }
+
+        // Evitar que el admin se cambie el rol a sí mismo
+        if (req.estudianteBDD._id.toString() === id) {
+            return res.status(403).json({
+                msg: 'No puedes cambiar tu propio rol'
+            });
+        }
+
+        const usuarioObjetivo = await Estudiante.findById(id);
+        if (!usuarioObjetivo) {
+            return res.status(404).json({ msg: `No existe el usuario con ID ${id}` });
+        }
+
+        // Aplicar el cambio de rol
+        usuarioObjetivo.rol = rol;
+        await usuarioObjetivo.save();
+
+        res.status(200).json({
+            msg: `Rol actualizado correctamente`,
+            data: {
+                _id:     usuarioObjetivo._id,
+                nombre:  usuarioObjetivo.nombre,
+                apellido: usuarioObjetivo.apellido,
+                correoInstitucional: usuarioObjetivo.email,
+                rol:     usuarioObjetivo.rol,
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error al cambiar rol:', error.message);
+        res.status(500).json({ msg: `Error en el servidor: ${error.message}` });
+    }
+};
+
 export {
     registro,
     confirmarMail,
@@ -408,4 +468,5 @@ export {
     perfil,
     actualizarPerfil,
     actualizarPassword,
+    cambiarRol,
 };
