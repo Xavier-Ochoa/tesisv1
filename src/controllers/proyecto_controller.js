@@ -50,10 +50,10 @@ export const listarProyectos = async (req, res) => {
   }
 };
 
-// ===== MIS PROYECTOS — solo el autor ve los suyos, con filtros =====
+// ===== MIS PROYECTOS — proyectos propios + proyectos donde es colaborador =====
 export const misProyectos = async (req, res) => {
   try {
-    const autorId = req.estudianteBDD._id;
+    const usuarioId = req.estudianteBDD._id;
     const {
       page     = 1,
       limit    = 10,
@@ -63,14 +63,21 @@ export const misProyectos = async (req, res) => {
       sort     = '-createdAt',
     } = req.query;
 
-    const filtro = { autor: autorId };
-    if (estado)                           filtro.estado   = estado;
-    if (publico !== undefined)            filtro.publico  = publico === 'true';
-    if (categoria)                        filtro.categoria = categoria;
+    // Traer proyectos donde el usuario es autor O colaborador
+    const filtro = {
+      $or: [
+        { autor: usuarioId },
+        { colaboradores: usuarioId },
+      ]
+    };
+    if (estado)                filtro.estado    = estado;
+    if (publico !== undefined) filtro.publico   = publico === 'true';
+    if (categoria)             filtro.categoria = categoria;
 
     const [proyectos, total] = await Promise.all([
       Proyecto.find(filtro)
         .populate('autor', 'nombre apellido carrera email')
+        .populate('colaboradores', 'nombre apellido carrera')
         .sort(sort)
         .limit(Number(limit))
         .skip((Number(page) - 1) * Number(limit))
@@ -78,9 +85,15 @@ export const misProyectos = async (req, res) => {
       Proyecto.countDocuments(filtro),
     ]);
 
+    // Marcar si el usuario es autor o colaborador en cada proyecto
+    const proyectosConRol = proyectos.map(p => ({
+      ...p,
+      rolEnProyecto: p.autor._id.toString() === usuarioId.toString() ? 'autor' : 'colaborador',
+    }));
+
     res.status(200).json({
       success: true,
-      data: proyectos,
+      data: proyectosConRol,
       pagination: {
         total,
         page:       parseInt(page),
@@ -322,210 +335,4 @@ export const proyectosDestacados = async (req, res) => {
 // ===== BUSCAR — landing =====
 export const buscarProyectos = async (req, res) => {
   try {
-    const { q, categoria, carrera, page = 1, limit = 10 } = req.query;
-
-    if (!q || !q.trim()) {
-      return res.status(400).json({ success: false, message: 'Proporciona un término de búsqueda' });
-    }
-
-    const filtro = { estado: 'aprobado', publico: true, $text: { $search: q.trim() } };
-    if (categoria) filtro.categoria = categoria;
-    if (carrera)   filtro.carrera   = decodeURIComponent(carrera);
-
-    const proyectos = await Proyecto.find(filtro)
-      .populate('autor', 'nombre apellido carrera')
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
-
-    res.status(200).json({ success: true, data: proyectos, total: proyectos.length });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al buscar proyectos', error: error.message });
-  }
-};
-
-// ===== POR CATEGORÍA — landing =====
-export const listarProyectosPorCategoria = async (req, res) => {
-  try {
-    const { tipo } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-
-    if (!['academico', 'extracurricular'].includes(tipo)) {
-      return res.status(400).json({ success: false, message: 'Categoría inválida' });
-    }
-
-    const filtro = { categoria: tipo, estado: 'aprobado', publico: true };
-    const [proyectos, total] = await Promise.all([
-      Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt')
-        .limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
-      Proyecto.countDocuments(filtro),
-    ]);
-
-    res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / limit) } });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
-  }
-};
-
-// ===== POR CARRERA — landing =====
-export const listarProyectosPorCarrera = async (req, res) => {
-  try {
-    const { carrera } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-    const carreraDecodificada = decodeURIComponent(carrera);
-    const filtro = { carrera: carreraDecodificada, estado: 'aprobado', publico: true };
-    const proyectos = await Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt')
-      .limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
-    res.status(200).json({ success: true, data: proyectos });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
-  }
-};
-
-// ===== PROYECTOS DE UN ESTUDIANTE — landing (solo aprobados+publicos) =====
-export const listarProyectosPorEstudiante = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-    const filtro = { autor: id, estado: 'aprobado', publico: true };
-    const proyectos = await Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt')
-      .limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
-    res.status(200).json({ success: true, data: proyectos });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
-  }
-};
-
-// ===== INTERACCIONES =====
-
-const verificarAccesoInteraccion = (proyecto, estudianteId) => {
-  const esAutor   = proyecto.autor.toString() === estudianteId.toString();
-  const esPublico = proyecto.estado === 'aprobado' && proyecto.publico;
-  return esAutor || esPublico;
-};
-
-export const agregarLike = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const estudianteId = req.estudianteBDD._id;
-    const proyecto = await Proyecto.findById(id);
-    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-    if (!verificarAccesoInteraccion(proyecto, estudianteId)) {
-      return res.status(403).json({ success: false, message: 'No tienes permiso para interactuar con este proyecto' });
-    }
-    await proyecto.agregarLike(estudianteId);
-    res.status(200).json({ success: true, message: 'Like agregado', likes: proyecto.likes.length });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al agregar like', error: error.message });
-  }
-};
-
-export const quitarLike = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const estudianteId = req.estudianteBDD._id;
-    const proyecto = await Proyecto.findById(id);
-    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-    if (!verificarAccesoInteraccion(proyecto, estudianteId)) {
-      return res.status(403).json({ success: false, message: 'No tienes permiso para interactuar con este proyecto' });
-    }
-    await proyecto.quitarLike(estudianteId);
-    res.status(200).json({ success: true, message: 'Like quitado', likes: proyecto.likes.length });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al quitar like', error: error.message });
-  }
-};
-
-export const agregarComentario = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { texto } = req.body;
-    const estudianteId = req.estudianteBDD._id;
-    if (!texto?.trim()) return res.status(400).json({ success: false, message: 'El comentario no puede estar vacío' });
-    const proyecto = await Proyecto.findById(id);
-    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-    if (!verificarAccesoInteraccion(proyecto, estudianteId)) {
-      return res.status(403).json({ success: false, message: 'No tienes permiso para interactuar con este proyecto' });
-    }
-    proyecto.comentarios.push({ estudiante: estudianteId, texto: texto.trim(), fecha: new Date() });
-    await proyecto.save();
-    await proyecto.populate('comentarios.estudiante', 'nombre apellido');
-    res.status(201).json({ success: true, message: 'Comentario agregado', data: proyecto.comentarios });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al agregar comentario', error: error.message });
-  }
-};
-
-export const eliminarComentario = async (req, res) => {
-  try {
-    const { id, comentarioId } = req.params;
-    const estudianteId = req.estudianteBDD._id;
-    const esAdmin = req.estudianteBDD.rol === 'admin';
-    const proyecto = await Proyecto.findById(id);
-    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-    const comentario = proyecto.comentarios.id(comentarioId);
-    if (!comentario) return res.status(404).json({ success: false, message: 'Comentario no encontrado' });
-    if (comentario.estudiante.toString() !== estudianteId.toString() && !esAdmin) {
-      return res.status(403).json({ success: false, message: 'No tienes permiso para eliminar este comentario' });
-    }
-    comentario.deleteOne();
-    await proyecto.save();
-    res.status(200).json({ success: true, message: 'Comentario eliminado' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar comentario', error: error.message });
-  }
-};
-
-// ===== COLABORADORES =====
-
-export const agregarColaborador = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { colaboradorId } = req.body;
-    const usuarioId = req.estudianteBDD._id;
-    if (!colaboradorId) return res.status(400).json({ success: false, message: 'Proporciona el ID del colaborador' });
-    const proyecto = await Proyecto.findById(id);
-    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-    if (proyecto.autor.toString() !== usuarioId.toString()) {
-      return res.status(403).json({ success: false, message: 'Solo el autor puede gestionar colaboradores' });
-    }
-    const colaborador = await Estudiante.findById(colaboradorId);
-    if (!colaborador) return res.status(404).json({ success: false, message: 'El usuario colaborador no existe' });
-    if (colaborador.rol !== 'estudiante') return res.status(400).json({ success: false, message: 'Solo se pueden agregar estudiantes como colaboradores' });
-    if (proyecto.colaboradores.includes(colaboradorId)) return res.status(400).json({ success: false, message: 'El colaborador ya está en el proyecto' });
-    proyecto.colaboradores.push(colaboradorId);
-    await proyecto.save();
-    await proyecto.populate('colaboradores', 'nombre apellido email carrera');
-    res.status(200).json({ success: true, message: 'Colaborador agregado', colaboradores: proyecto.colaboradores });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al agregar colaborador', error: error.message });
-  }
-};
-
-export const eliminarColaborador = async (req, res) => {
-  try {
-    const { id, colaboradorId } = req.params;
-    const usuarioId = req.estudianteBDD._id;
-    const proyecto = await Proyecto.findById(id);
-    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-    if (proyecto.autor.toString() !== usuarioId.toString()) {
-      return res.status(403).json({ success: false, message: 'Solo el autor puede gestionar colaboradores' });
-    }
-    proyecto.colaboradores = proyecto.colaboradores.filter(c => c.toString() !== colaboradorId);
-    await proyecto.save();
-    await proyecto.populate('colaboradores', 'nombre apellido email carrera');
-    res.status(200).json({ success: true, message: 'Colaborador eliminado', colaboradores: proyecto.colaboradores });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar colaborador', error: error.message });
-  }
-};
-
-export const listarColaboradores = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const proyecto = await Proyecto.findById(id).populate('colaboradores', 'nombre apellido email carrera semestre');
-    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-    res.status(200).json({ success: true, total: proyecto.colaboradores.length, data: proyecto.colaboradores });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener colaboradores', error: error.message });
-  }
-};
+    const { q, categoria, carrera, page = 1, limit =
