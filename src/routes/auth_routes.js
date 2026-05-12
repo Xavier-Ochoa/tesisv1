@@ -59,16 +59,16 @@ router.post('/logout', verificarTokenJWT, cerrarSesion);
 // Ver perfil propio
 router.get('/perfil', verificarTokenJWT, perfil);
 
-// Actualizar perfil — solo campos opcionales permitidos
+// Actualizar perfil — el ID se extrae del token, no de la URL
 router.put(
-  '/perfil/:id',
+  '/perfil',
   verificarTokenJWT,
   validarActualizarPerfil,
   manejarErroresValidacion,
   actualizarPerfil
 );
 
-// Cambiar contraseña
-router.put('/password/:id', verificarTokenJWT, actualizarPassword);
+// Cambiar contraseña — el ID se extrae del token, no de la URL
+router.put('/password', verificarTokenJWT, actualizarPassword);
 
 export default router;
