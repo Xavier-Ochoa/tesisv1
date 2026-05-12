@@ -2,89 +2,95 @@ import Proyecto from '../models/Proyecto.js';
 import Estudiante from '../models/Estudiante.js';
 import { subirImagenCloudinary, eliminarImagenCloudinary } from '../helpers/uploadCloudinary.js';
 
-/**
- * Función helper para construir filtro de proyectos para usuarios normales
- * Muestra solo proyectos publicados O proyectos propios del usuario
- */
-const construirFiltroUsuario = (estudianteId, filtroAdicional = {}) => {
-  return {
-    $or: [
-      { estado: 'publicado' },
-      { autor: estudianteId }
-    ],
-    publico: true,
-    ...filtroAdicional
-  };
-};
-
-// ===== LISTAR PROYECTOS =====
+// ===== LANDING PAGE — solo aprobado + publico:true =====
 export const listarProyectos = async (req, res) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
-      estado, 
+    const {
+      page     = 1,
+      limit    = 10,
+      categoria,
       carrera,
-      sort = '-createdAt'
+      q,
+      sort     = '-createdAt',
     } = req.query;
 
-    const estudianteId = req.estudianteBDD?._id;
+    // Base: aprobado y público
+    const filtro = { estado: 'aprobado', publico: true };
+    if (categoria) filtro.categoria = categoria;
+    if (carrera)   filtro.carrera   = decodeURIComponent(carrera);
 
-    let filtro = {};
-    
-    // Si hay usuario logueado, aplicar filtro de usuario
-    if (estudianteId) {
-      filtro = construirFiltroUsuario(estudianteId);
-    } else {
-      // Si no hay usuario, solo mostrar publicados
-      filtro = { estado: 'publicado', publico: true };
+    // Búsqueda de texto
+    if (q && q.trim()) {
+      filtro.$text = { $search: q.trim() };
     }
 
-    // Agregar filtros adicionales
-    if (estado && estudianteId) {
-      // BUG FIX: Antes se hacía filtro.estado = estado después de construirFiltroUsuario,
-      // pero construirFiltroUsuario ya tiene un $or con { estado: 'publicado' }.
-      // Asignar filtro.estado directo pisaba ese $or de forma incorrecta.
-      // La solución correcta es añadir el filtro de estado dentro del $or.
-      filtro = {
-        $or: [
-          { estado: estado, autor: estudianteId },  // proyectos propios con ese estado
-          { estado: estado, publico: true }          // proyectos públicos con ese estado
-        ],
-        publico: true,
-      };
-      if (carrera) filtro.carrera = decodeURIComponent(carrera);
-    } else if (carrera) {
-      filtro.carrera = decodeURIComponent(carrera);
-    }
-
-    const proyectos = await Proyecto.find(filtro)
-      .populate('autor', 'nombre apellido carrera email')
-      .populate('colaboradores', 'nombre apellido carrera')
-      .sort(sort)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .lean();
-
-    const total = await Proyecto.countDocuments(filtro);
+    const [proyectos, total] = await Promise.all([
+      Proyecto.find(filtro)
+        .populate('autor', 'nombre apellido carrera email')
+        .sort(sort)
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit))
+        .lean(),
+      Proyecto.countDocuments(filtro),
+    ]);
 
     res.status(200).json({
       success: true,
       data: proyectos,
       pagination: {
         total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
-        limit: parseInt(limit),
+        page:       parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        limit:      parseInt(limit),
       },
     });
   } catch (error) {
     console.error('Error al listar proyectos:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener los proyectos',
-      error: error.message,
+    res.status(500).json({ success: false, message: 'Error al obtener los proyectos', error: error.message });
+  }
+};
+
+// ===== MIS PROYECTOS — solo el autor ve los suyos, con filtros =====
+export const misProyectos = async (req, res) => {
+  try {
+    const autorId = req.estudianteBDD._id;
+    const {
+      page     = 1,
+      limit    = 10,
+      estado,
+      publico,
+      categoria,
+      sort     = '-createdAt',
+    } = req.query;
+
+    const filtro = { autor: autorId };
+    if (estado)                           filtro.estado   = estado;
+    if (publico !== undefined)            filtro.publico  = publico === 'true';
+    if (categoria)                        filtro.categoria = categoria;
+
+    const [proyectos, total] = await Promise.all([
+      Proyecto.find(filtro)
+        .populate('autor', 'nombre apellido carrera email')
+        .sort(sort)
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit))
+        .lean(),
+      Proyecto.countDocuments(filtro),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: proyectos,
+      pagination: {
+        total,
+        page:       parseInt(page),
+        totalPages: Math.ceil(total / limit),
+        limit:      parseInt(limit),
+      },
     });
+  } catch (error) {
+    console.error('Error al listar mis proyectos:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener tus proyectos', error: error.message });
   }
 };
 
@@ -100,169 +106,101 @@ export const obtenerProyecto = async (req, res) => {
       .populate('comentarios.estudiante', 'nombre apellido');
 
     if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
+      return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     }
 
-    // Verificar si el usuario puede ver este proyecto
-    const esAutor = estudianteId && proyecto.autor._id.toString() === estudianteId.toString();
-    const esPublicado = proyecto.estado === 'publicado';
+    const esAutor    = estudianteId && proyecto.autor._id.toString() === estudianteId.toString();
+    const esAdmin    = req.estudianteBDD?.rol === 'admin';
+    const esPublico  = proyecto.estado === 'aprobado' && proyecto.publico;
 
-    if (!esPublicado && !esAutor) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para ver este proyecto',
-      });
+    if (!esPublico && !esAutor && !esAdmin) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para ver este proyecto' });
     }
 
-    // Incrementar vistas solo si es publicado
-    if (esPublicado) {
-      await proyecto.incrementarVistas();
-    }
+    // Incrementar vistas si es visible públicamente
+    if (esPublico) await proyecto.incrementarVistas();
 
-    res.status(200).json({
-      success: true,
-      data: proyecto,
-    });
+    res.status(200).json({ success: true, data: proyecto });
   } catch (error) {
     console.error('Error al obtener proyecto:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener el proyecto',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al obtener el proyecto', error: error.message });
   }
 };
 
-// ===== CREAR PROYECTO =====
+// ===== CREAR PROYECTO — estado siempre pendiente =====
 export const crearProyecto = async (req, res) => {
   try {
     const usuarioId = req.estudianteBDD._id;
-    const rolUsuario = req.estudianteBDD.rol;
-
-    // BUG FIX: form-data puede dejar req.body undefined si el directorio temp no existe
     req.body = req.body ?? {};
-
-    // Según la tesis:
-    // - Docente: puede crear y publicar proyectos directamente sin requerir validación del admin
-    // - Estudiante: crea en estado 'en_progreso', el admin debe publicarlo
-    const estadoInicial = rolUsuario === 'docente' ? 'publicado' : 'en_progreso';
 
     const nuevoProyecto = new Proyecto({
       ...req.body,
-      autor: usuarioId,
-      estado: estadoInicial,
+      autor:   usuarioId,
+      estado:  'pendiente',   // siempre pendiente, el admin lo aprueba o rechaza
+      publico: false,         // empieza privado hasta que el autor lo publique tras aprobación
     });
 
-    // Manejar subida de imagen si existe
     if (req.files?.imagen) {
-      const { secure_url, public_id } = await subirImagenCloudinary(
-        req.files.imagen.tempFilePath,
-        'Proyectos'
-      );
-
-      nuevoProyecto.imagenes = [secure_url];
+      const { secure_url, public_id } = await subirImagenCloudinary(req.files.imagen.tempFilePath, 'Proyectos');
+      nuevoProyecto.imagenes   = [secure_url];
       nuevoProyecto.imagenesID = [public_id];
     }
 
     await nuevoProyecto.save();
     await nuevoProyecto.populate('autor', 'nombre apellido carrera email');
 
-    const mensaje = rolUsuario === 'docente'
-      ? 'Proyecto creado y publicado exitosamente.'
-      : 'Proyecto creado exitosamente. Está en estado "en_progreso". Un administrador debe publicarlo para que sea visible para todos.';
-
     res.status(201).json({
       success: true,
-      message: mensaje,
+      message: 'Proyecto creado. Está pendiente de revisión por el administrador.',
       data: nuevoProyecto,
     });
   } catch (error) {
     console.error('Error al crear proyecto:', error);
-    
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         success: false,
         message: 'Error de validación',
-        errors: Object.values(error.errors).map(err => err.message),
+        errors: Object.values(error.errors).map(e => e.message),
       });
     }
-
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear el proyecto',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al crear el proyecto', error: error.message });
   }
 };
 
-// ===== ACTUALIZAR PROYECTO =====
+// ===== ACTUALIZAR PROYECTO — solo datos, no estado ni publico =====
 export const actualizarProyecto = async (req, res) => {
   try {
     const { id } = req.params;
     const estudianteId = req.estudianteBDD._id;
-
-    // BUG FIX: form-data puede dejar req.body undefined si el directorio temp no existe
     req.body = req.body ?? {};
 
     const proyecto = await Proyecto.findById(id);
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
 
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
-    }
-
-    // Verificar que sea el autor
     if (proyecto.autor.toString() !== estudianteId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para editar este proyecto',
-      });
+      return res.status(403).json({ success: false, message: 'No tienes permiso para editar este proyecto' });
     }
 
-    // BUG FIX: Construir objeto de actualización explícito con campos permitidos.
-    // Antes se pasaba req.body directo a findByIdAndUpdate, lo que causaba dos
-    // problemas: (1) los campos imagenes/imagenesID podían no persistir
-    // correctamente al venir de multipart/form-data, y (2) permitía mass-assignment
-    // (el usuario podía enviar estado:'publicado' o autor:'otro_id').
+    // El autor no puede cambiar estado ni publico desde aquí
     const camposPermitidos = [
       'titulo', 'descripcion', 'categoria', 'asignatura',
       'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio',
-      'enlaceDemo', 'tags', 'carrera', 'nivel', 'publico'
+      'enlaceDemo', 'tags', 'carrera', 'nivel',
     ];
 
     const datosActualizacion = {};
     for (const campo of camposPermitidos) {
-      if (req.body[campo] !== undefined) {
-        datosActualizacion[campo] = req.body[campo];
-      }
+      if (req.body[campo] !== undefined) datosActualizacion[campo] = req.body[campo];
     }
 
-    // Manejar actualización de imagen
     if (req.files?.imagen) {
-      // Eliminar imagen anterior de Cloudinary si existe
-      if (proyecto.imagenesID && proyecto.imagenesID.length > 0) {
-        for (const publicId of proyecto.imagenesID) {
-          try {
-            await eliminarImagenCloudinary(publicId);
-          } catch (err) {
-            console.error('Error al eliminar imagen anterior de Cloudinary:', err);
-          }
+      if (proyecto.imagenesID?.length > 0) {
+        for (const pid of proyecto.imagenesID) {
+          try { await eliminarImagenCloudinary(pid); } catch (e) { console.error(e); }
         }
       }
-
-      // Subir nueva imagen
-      const { secure_url, public_id } = await subirImagenCloudinary(
-        req.files.imagen.tempFilePath,
-        'Proyectos'
-      );
-
-      // BUG FIX: Asignar al objeto de actualización explícito, no a req.body
-      datosActualizacion.imagenes = [secure_url];
+      const { secure_url, public_id } = await subirImagenCloudinary(req.files.imagen.tempFilePath, 'Proyectos');
+      datosActualizacion.imagenes   = [secure_url];
       datosActualizacion.imagenesID = [public_id];
     }
 
@@ -273,18 +211,71 @@ export const actualizarProyecto = async (req, res) => {
     ).populate('autor', 'nombre apellido carrera email')
      .populate('colaboradores', 'nombre apellido carrera');
 
-    res.status(200).json({
-      success: true,
-      message: 'Proyecto actualizado exitosamente',
-      data: proyectoActualizado,
-    });
+    res.status(200).json({ success: true, message: 'Proyecto actualizado exitosamente', data: proyectoActualizado });
   } catch (error) {
     console.error('Error al actualizar proyecto:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar el proyecto',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al actualizar el proyecto', error: error.message });
+  }
+};
+
+// ===== PUBLICAR PROYECTO — solo el autor, solo si está aprobado =====
+export const publicarProyecto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const autorId = req.estudianteBDD._id;
+
+    const proyecto = await Proyecto.findById(id);
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+
+    if (proyecto.autor.toString() !== autorId.toString()) {
+      return res.status(403).json({ success: false, message: 'Solo el autor puede publicar su proyecto' });
+    }
+
+    if (proyecto.estado !== 'aprobado') {
+      return res.status(400).json({
+        success: false,
+        message: `No puedes publicar este proyecto porque su estado es "${proyecto.estado}". Solo los proyectos aprobados pueden publicarse.`,
+      });
+    }
+
+    if (proyecto.publico) {
+      return res.status(400).json({ success: false, message: 'El proyecto ya está publicado' });
+    }
+
+    proyecto.publico = true;
+    await proyecto.save();
+
+    res.status(200).json({ success: true, message: 'Proyecto publicado. Ya es visible para todos.', data: proyecto });
+  } catch (error) {
+    console.error('Error al publicar proyecto:', error);
+    res.status(500).json({ success: false, message: 'Error al publicar el proyecto', error: error.message });
+  }
+};
+
+// ===== DESPUBLICAR PROYECTO — solo el autor =====
+export const despublicarProyecto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const autorId = req.estudianteBDD._id;
+
+    const proyecto = await Proyecto.findById(id);
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+
+    if (proyecto.autor.toString() !== autorId.toString()) {
+      return res.status(403).json({ success: false, message: 'Solo el autor puede despublicar su proyecto' });
+    }
+
+    if (!proyecto.publico) {
+      return res.status(400).json({ success: false, message: 'El proyecto ya está despublicado' });
+    }
+
+    proyecto.publico = false;
+    await proyecto.save();
+
+    res.status(200).json({ success: true, message: 'Proyecto despublicado. Ya no es visible públicamente.', data: proyecto });
+  } catch (error) {
+    console.error('Error al despublicar proyecto:', error);
+    res.status(500).json({ success: false, message: 'Error al despublicar el proyecto', error: error.message });
   }
 };
 
@@ -295,259 +286,136 @@ export const eliminarProyecto = async (req, res) => {
     const estudianteId = req.estudianteBDD._id;
 
     const proyecto = await Proyecto.findById(id);
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
 
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
-    }
-
-    // Solo el autor puede eliminar su proyecto (admin usa sus propios endpoints)
     if (proyecto.autor.toString() !== estudianteId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para eliminar este proyecto',
-      });
+      return res.status(403).json({ success: false, message: 'No tienes permiso para eliminar este proyecto' });
     }
 
-    // Eliminar imágenes de Cloudinary si existen
-    if (proyecto.imagenesID && proyecto.imagenesID.length > 0) {
-      for (const publicId of proyecto.imagenesID) {
-        try {
-          await eliminarImagenCloudinary(publicId);
-        } catch (error) {
-          console.error('Error al eliminar imagen de Cloudinary:', error);
-        }
+    if (proyecto.imagenesID?.length > 0) {
+      for (const pid of proyecto.imagenesID) {
+        try { await eliminarImagenCloudinary(pid); } catch (e) { console.error(e); }
       }
     }
 
     await Proyecto.findByIdAndDelete(id);
-
-    res.status(200).json({
-      success: true,
-      message: 'Proyecto eliminado exitosamente',
-    });
+    res.status(200).json({ success: true, message: 'Proyecto eliminado exitosamente' });
   } catch (error) {
     console.error('Error al eliminar proyecto:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar el proyecto',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al eliminar el proyecto', error: error.message });
   }
 };
 
-// ===== FILTROS =====
+// ===== PROYECTOS DESTACADOS — landing =====
+export const proyectosDestacados = async (req, res) => {
+  try {
+    const proyectos = await Proyecto.find({ estado: 'aprobado', publico: true })
+      .populate('autor', 'nombre apellido carrera')
+      .sort('-vistas')
+      .limit(6);
+    res.status(200).json({ success: true, data: proyectos });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error al obtener proyectos destacados', error: error.message });
+  }
+};
 
+// ===== BUSCAR — landing =====
+export const buscarProyectos = async (req, res) => {
+  try {
+    const { q, categoria, carrera, page = 1, limit = 10 } = req.query;
+
+    if (!q || !q.trim()) {
+      return res.status(400).json({ success: false, message: 'Proporciona un término de búsqueda' });
+    }
+
+    const filtro = { estado: 'aprobado', publico: true, $text: { $search: q.trim() } };
+    if (categoria) filtro.categoria = categoria;
+    if (carrera)   filtro.carrera   = decodeURIComponent(carrera);
+
+    const proyectos = await Proyecto.find(filtro)
+      .populate('autor', 'nombre apellido carrera')
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
+
+    res.status(200).json({ success: true, data: proyectos, total: proyectos.length });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error al buscar proyectos', error: error.message });
+  }
+};
+
+// ===== POR CATEGORÍA — landing =====
 export const listarProyectosPorCategoria = async (req, res) => {
   try {
     const { tipo } = req.params;
     const { page = 1, limit = 10 } = req.query;
-    const estudianteId = req.estudianteBDD?._id;
 
     if (!['academico', 'extracurricular'].includes(tipo)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Tipo de categoría inválida',
-      });
+      return res.status(400).json({ success: false, message: 'Categoría inválida' });
     }
 
-    const filtro = estudianteId 
-      ? construirFiltroUsuario(estudianteId, { categoria: tipo })
-      : { categoria: tipo, estado: 'publicado', publico: true };
+    const filtro = { categoria: tipo, estado: 'aprobado', publico: true };
+    const [proyectos, total] = await Promise.all([
+      Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt')
+        .limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
+      Proyecto.countDocuments(filtro),
+    ]);
 
-    const proyectos = await Proyecto.find(filtro)
-      .populate('autor', 'nombre apellido carrera')
-      .sort('-createdAt')
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-
-    const total = await Proyecto.countDocuments(filtro);
-
-    res.status(200).json({
-      success: true,
-      data: proyectos,
-      pagination: {
-        total,
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
-      },
-    });
+    res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / limit) } });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener proyectos',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
   }
 };
 
+// ===== POR CARRERA — landing =====
 export const listarProyectosPorCarrera = async (req, res) => {
   try {
     const { carrera } = req.params;
-    const estudianteId = req.estudianteBDD?._id;
-    
+    const { page = 1, limit = 10 } = req.query;
     const carreraDecodificada = decodeURIComponent(carrera);
-
-    const filtro = estudianteId
-      ? construirFiltroUsuario(estudianteId, { carrera: carreraDecodificada })
-      : { carrera: carreraDecodificada, estado: 'publicado', publico: true };
-
-    const proyectos = await Proyecto.find(filtro)
-      .populate('autor', 'nombre apellido carrera')
-      .sort('-createdAt');
-
-    res.status(200).json({
-      success: true,
-      data: proyectos,
-    });
+    const filtro = { carrera: carreraDecodificada, estado: 'aprobado', publico: true };
+    const proyectos = await Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt')
+      .limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
+    res.status(200).json({ success: true, data: proyectos });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener proyectos',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
   }
 };
 
+// ===== PROYECTOS DE UN ESTUDIANTE — landing (solo aprobados+publicos) =====
 export const listarProyectosPorEstudiante = async (req, res) => {
   try {
     const { id } = req.params;
-    const estudianteId = req.estudianteBDD?._id;
-
-    // Si es el mismo estudiante, mostrar todos sus proyectos
-    // Si no, solo mostrar los publicados
-    const filtro = estudianteId && estudianteId.toString() === id
-      ? { autor: id, publico: true }
-      : { autor: id, estado: 'publicado', publico: true };
-
-    const proyectos = await Proyecto.find(filtro)
-      .populate('autor', 'nombre apellido carrera')
-      .sort('-createdAt');
-
-    res.status(200).json({
-      success: true,
-      data: proyectos,
-    });
+    const { page = 1, limit = 10 } = req.query;
+    const filtro = { autor: id, estado: 'aprobado', publico: true };
+    const proyectos = await Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt')
+      .limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
+    res.status(200).json({ success: true, data: proyectos });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener proyectos',
-      error: error.message,
-    });
-  }
-};
-
-export const buscarProyectos = async (req, res) => {
-  try {
-    const { q } = req.query;
-    const estudianteId = req.estudianteBDD?._id;
-
-    if (!q || q.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Debe proporcionar un término de búsqueda',
-      });
-    }
-
-    const filtroBase = estudianteId
-      ? construirFiltroUsuario(estudianteId)
-      : { estado: 'publicado', publico: true };
-
-    const proyectos = await Proyecto.find({
-      $text: { $search: q },
-      ...filtroBase
-    })
-      .populate('autor', 'nombre apellido carrera')
-      .limit(20);
-
-    res.status(200).json({
-      success: true,
-      data: proyectos,
-      total: proyectos.length,
-    });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al buscar proyectos',
-      error: error.message,
-    });
-  }
-};
-
-export const proyectosDestacados = async (req, res) => {
-  try {
-    const estudianteId = req.estudianteBDD?._id;
-
-    const filtro = estudianteId
-      ? construirFiltroUsuario(estudianteId)
-      : { estado: 'publicado', publico: true };
-
-    const proyectos = await Proyecto.find(filtro)
-      .populate('autor', 'nombre apellido carrera')
-      .sort('-vistas')
-      .limit(6);
-
-    res.status(200).json({
-      success: true,
-      data: proyectos,
-    });
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener proyectos destacados',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
   }
 };
 
 // ===== INTERACCIONES =====
 
+const verificarAccesoInteraccion = (proyecto, estudianteId) => {
+  const esAutor   = proyecto.autor.toString() === estudianteId.toString();
+  const esPublico = proyecto.estado === 'aprobado' && proyecto.publico;
+  return esAutor || esPublico;
+};
+
 export const agregarLike = async (req, res) => {
   try {
     const { id } = req.params;
     const estudianteId = req.estudianteBDD._id;
-
     const proyecto = await Proyecto.findById(id);
-    
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    if (!verificarAccesoInteraccion(proyecto, estudianteId)) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para interactuar con este proyecto' });
     }
-
-    // Verificar que el usuario pueda ver este proyecto
-    const esAutor = proyecto.autor.toString() === estudianteId.toString();
-    const esPublicado = proyecto.estado === 'publicado';
-
-    if (!esPublicado && !esAutor) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para interactuar con este proyecto',
-      });
-    }
-
     await proyecto.agregarLike(estudianteId);
-
-    res.status(200).json({
-      success: true,
-      message: 'Like agregado',
-      likes: proyecto.likes.length,
-    });
+    res.status(200).json({ success: true, message: 'Like agregado', likes: proyecto.likes.length });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al agregar like',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al agregar like', error: error.message });
   }
 };
 
@@ -555,41 +423,15 @@ export const quitarLike = async (req, res) => {
   try {
     const { id } = req.params;
     const estudianteId = req.estudianteBDD._id;
-
     const proyecto = await Proyecto.findById(id);
-    
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    if (!verificarAccesoInteraccion(proyecto, estudianteId)) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para interactuar con este proyecto' });
     }
-
-    // Verificar que el usuario pueda ver este proyecto
-    const esAutor = proyecto.autor.toString() === estudianteId.toString();
-    const esPublicado = proyecto.estado === 'publicado';
-
-    if (!esPublicado && !esAutor) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para interactuar con este proyecto',
-      });
-    }
-
     await proyecto.quitarLike(estudianteId);
-
-    res.status(200).json({
-      success: true,
-      message: 'Like quitado',
-      likes: proyecto.likes.length,
-    });
+    res.status(200).json({ success: true, message: 'Like quitado', likes: proyecto.likes.length });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al quitar like',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al quitar like', error: error.message });
   }
 };
 
@@ -598,55 +440,18 @@ export const agregarComentario = async (req, res) => {
     const { id } = req.params;
     const { texto } = req.body;
     const estudianteId = req.estudianteBDD._id;
-
-    if (!texto || texto.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'El comentario no puede estar vacío',
-      });
-    }
-
+    if (!texto?.trim()) return res.status(400).json({ success: false, message: 'El comentario no puede estar vacío' });
     const proyecto = await Proyecto.findById(id);
-    
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    if (!verificarAccesoInteraccion(proyecto, estudianteId)) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para interactuar con este proyecto' });
     }
-
-    // Verificar que el usuario pueda ver este proyecto
-    const esAutor = proyecto.autor.toString() === estudianteId.toString();
-    const esPublicado = proyecto.estado === 'publicado';
-
-    if (!esPublicado && !esAutor) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para interactuar con este proyecto',
-      });
-    }
-
-    proyecto.comentarios.push({
-      estudiante: estudianteId,
-      texto: texto.trim(),
-      fecha: new Date(),
-    });
-
+    proyecto.comentarios.push({ estudiante: estudianteId, texto: texto.trim(), fecha: new Date() });
     await proyecto.save();
     await proyecto.populate('comentarios.estudiante', 'nombre apellido');
-
-    res.status(201).json({
-      success: true,
-      message: 'Comentario agregado',
-      data: proyecto.comentarios,
-    });
+    res.status(201).json({ success: true, message: 'Comentario agregado', data: proyecto.comentarios });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al agregar comentario',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al agregar comentario', error: error.message });
   }
 };
 
@@ -655,157 +460,72 @@ export const eliminarComentario = async (req, res) => {
     const { id, comentarioId } = req.params;
     const estudianteId = req.estudianteBDD._id;
     const esAdmin = req.estudianteBDD.rol === 'admin';
-
     const proyecto = await Proyecto.findById(id);
-    if (!proyecto) {
-      return res.status(404).json({
-        success: false,
-        message: 'Proyecto no encontrado',
-      });
-    }
-
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     const comentario = proyecto.comentarios.id(comentarioId);
-    if (!comentario) {
-      return res.status(404).json({
-        success: false,
-        message: 'Comentario no encontrado',
-      });
-    }
-
+    if (!comentario) return res.status(404).json({ success: false, message: 'Comentario no encontrado' });
     if (comentario.estudiante.toString() !== estudianteId.toString() && !esAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'No tienes permiso para eliminar este comentario',
-      });
+      return res.status(403).json({ success: false, message: 'No tienes permiso para eliminar este comentario' });
     }
-
     comentario.deleteOne();
     await proyecto.save();
-
-    res.status(200).json({
-      success: true,
-      message: 'Comentario eliminado',
-    });
+    res.status(200).json({ success: true, message: 'Comentario eliminado' });
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar comentario',
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: 'Error al eliminar comentario', error: error.message });
   }
 };
 
-// ===== GESTIÓN DE COLABORADORES (solo docentes) =====
+// ===== COLABORADORES =====
 
-/**
- * Agregar colaborador a un proyecto — HU (Docente)
- * Solo el docente autor del proyecto puede agregar colaboradores (estudiantes).
- */
 export const agregarColaborador = async (req, res) => {
   try {
     const { id } = req.params;
     const { colaboradorId } = req.body;
     const usuarioId = req.estudianteBDD._id;
-
-    if (!colaboradorId) {
-      return res.status(400).json({ success: false, message: 'Debes proporcionar el ID del colaborador' });
-    }
-
+    if (!colaboradorId) return res.status(400).json({ success: false, message: 'Proporciona el ID del colaborador' });
     const proyecto = await Proyecto.findById(id);
-    if (!proyecto) {
-      return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-    }
-
-    // Solo el autor (docente) puede gestionar colaboradores
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     if (proyecto.autor.toString() !== usuarioId.toString()) {
-      return res.status(403).json({ success: false, message: 'Solo el docente autor puede gestionar colaboradores' });
+      return res.status(403).json({ success: false, message: 'Solo el autor puede gestionar colaboradores' });
     }
-
-    // Verificar que el colaborador exista y sea estudiante
     const colaborador = await Estudiante.findById(colaboradorId);
-    if (!colaborador) {
-      return res.status(404).json({ success: false, message: 'El usuario colaborador no existe' });
-    }
-    if (colaborador.rol !== 'estudiante') {
-      return res.status(400).json({ success: false, message: 'Solo se pueden agregar estudiantes como colaboradores' });
-    }
-
-    // Evitar duplicados
-    if (proyecto.colaboradores.includes(colaboradorId)) {
-      return res.status(400).json({ success: false, message: 'El colaborador ya está en el proyecto' });
-    }
-
+    if (!colaborador) return res.status(404).json({ success: false, message: 'El usuario colaborador no existe' });
+    if (colaborador.rol !== 'estudiante') return res.status(400).json({ success: false, message: 'Solo se pueden agregar estudiantes como colaboradores' });
+    if (proyecto.colaboradores.includes(colaboradorId)) return res.status(400).json({ success: false, message: 'El colaborador ya está en el proyecto' });
     proyecto.colaboradores.push(colaboradorId);
     await proyecto.save();
     await proyecto.populate('colaboradores', 'nombre apellido email carrera');
-
-    res.status(200).json({
-      success: true,
-      message: 'Colaborador agregado exitosamente',
-      colaboradores: proyecto.colaboradores,
-    });
+    res.status(200).json({ success: true, message: 'Colaborador agregado', colaboradores: proyecto.colaboradores });
   } catch (error) {
-    console.error('Error al agregar colaborador:', error);
     res.status(500).json({ success: false, message: 'Error al agregar colaborador', error: error.message });
   }
 };
 
-/**
- * Eliminar colaborador de un proyecto — HU (Docente)
- */
 export const eliminarColaborador = async (req, res) => {
   try {
     const { id, colaboradorId } = req.params;
     const usuarioId = req.estudianteBDD._id;
-
     const proyecto = await Proyecto.findById(id);
-    if (!proyecto) {
-      return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-    }
-
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     if (proyecto.autor.toString() !== usuarioId.toString()) {
-      return res.status(403).json({ success: false, message: 'Solo el docente autor puede gestionar colaboradores' });
+      return res.status(403).json({ success: false, message: 'Solo el autor puede gestionar colaboradores' });
     }
-
-    proyecto.colaboradores = proyecto.colaboradores.filter(
-      (col) => col.toString() !== colaboradorId
-    );
+    proyecto.colaboradores = proyecto.colaboradores.filter(c => c.toString() !== colaboradorId);
     await proyecto.save();
     await proyecto.populate('colaboradores', 'nombre apellido email carrera');
-
-    res.status(200).json({
-      success: true,
-      message: 'Colaborador eliminado exitosamente',
-      colaboradores: proyecto.colaboradores,
-    });
+    res.status(200).json({ success: true, message: 'Colaborador eliminado', colaboradores: proyecto.colaboradores });
   } catch (error) {
-    console.error('Error al eliminar colaborador:', error);
     res.status(500).json({ success: false, message: 'Error al eliminar colaborador', error: error.message });
   }
 };
 
-/**
- * Consultar colaboradores de un proyecto — HU (Docente)
- */
 export const listarColaboradores = async (req, res) => {
   try {
     const { id } = req.params;
-
-    const proyecto = await Proyecto.findById(id)
-      .populate('colaboradores', 'nombre apellido email carrera semestre');
-
-    if (!proyecto) {
-      return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-    }
-
-    res.status(200).json({
-      success: true,
-      total: proyecto.colaboradores.length,
-      colaboradores: proyecto.colaboradores,
-    });
+    const proyecto = await Proyecto.findById(id).populate('colaboradores', 'nombre apellido email carrera semestre');
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    res.status(200).json({ success: true, total: proyecto.colaboradores.length, data: proyecto.colaboradores });
   } catch (error) {
-    console.error('Error al listar colaboradores:', error);
     res.status(500).json({ success: false, message: 'Error al obtener colaboradores', error: error.message });
   }
 };
