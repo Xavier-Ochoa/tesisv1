@@ -18,7 +18,7 @@ import {
   eliminarColaborador,
   listarColaboradores,
 } from '../controllers/proyecto_controller.js';
-import { verificarTokenJWT, verificarDocente } from '../middlewares/JWT.js';
+import { verificarTokenJWT, verificarDocente, verificarTokenOpcional } from '../middlewares/JWT.js';
 
 import { 
   validarCrearProyecto, 
@@ -30,13 +30,13 @@ import { manejarErroresValidacion } from '../middlewares/validaciones.js';
 const router = Router();
 
 // ===== RUTAS PÚBLICAS =====
-router.get('/', listarProyectos);
+router.get('/', verificarTokenOpcional, listarProyectos);
 router.get('/destacados', proyectosDestacados);
 router.get('/buscar', buscarProyectos);
 router.get('/categoria/:tipo', listarProyectosPorCategoria);
 router.get('/carrera/:carrera', listarProyectosPorCarrera);
-router.get('/estudiante/:id', listarProyectosPorEstudiante);
-router.get('/:id', obtenerProyecto);
+router.get('/estudiante/:id', verificarTokenOpcional, listarProyectosPorEstudiante);
+router.get('/:id', verificarTokenOpcional, obtenerProyecto);
 
 // ===== RUTAS PROTEGIDAS =====
 
