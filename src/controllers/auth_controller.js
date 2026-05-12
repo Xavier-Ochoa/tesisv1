@@ -185,12 +185,10 @@ const comprobarTokenPasword = async (req, res) => {
 // ===== CREAR NUEVA CONTRASEÑA =====
 const crearNuevoPassword = async (req, res) => {
     try {
-        const { password, confirmpassword } = req.body;
+        const { password } = req.body;
         const { token } = req.params;
 
-        if (!password || !confirmpassword) return res.status(400).json({ msg: 'Debes llenar todos los campos' });
-        if (password !== confirmpassword) return res.status(400).json({ msg: 'Las contraseñas no coinciden' });
-
+        // Las validaciones de formato y confirmación ya las hizo validarNuevoPassword
         // +token necesario porque tiene select:false en el modelo
         const usuarioBDD = await Estudiante.findOne({ token }).select('+token');
         if (!usuarioBDD) return res.status(404).json({ msg: 'Token inválido o expirado' });
@@ -383,8 +381,12 @@ const actualizarPassword = async (req, res) => {
         const usuarioBDD = await Estudiante.findById(req.estudianteBDD._id);
         if (!usuarioBDD) return res.status(404).json({ msg: 'Usuario no encontrado' });
 
-        const passwordActual = req.body.passwordactual || req.body.contraseñaActual;
-        const passwordNuevo  = req.body.passwordnuevo  || req.body.contraseñaNueva;
+        const passwordActual = req.body.passwordactual || req.body['contraseñaActual'];
+        const passwordNuevo  = req.body.passwordnuevo  || req.body['contraseñaNueva'];
+
+        // Las validaciones de formato ya las hizo validarCambiarPassword
+        if (!passwordActual) return res.status(400).json({ msg: 'La contraseña actual es obligatoria' });
+        if (!passwordNuevo)  return res.status(400).json({ msg: 'La nueva contraseña es obligatoria' });
 
         const valido = await usuarioBDD.matchPassword(passwordActual);
         if (!valido) return res.status(400).json({ msg: 'La contraseña actual no es correcta' });
