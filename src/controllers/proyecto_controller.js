@@ -14,15 +14,10 @@ export const listarProyectos = async (req, res) => {
       sort     = '-createdAt',
     } = req.query;
 
-    // Base: aprobado y público
     const filtro = { estado: 'aprobado', publico: true };
     if (categoria) filtro.categoria = categoria;
     if (carrera)   filtro.carrera   = decodeURIComponent(carrera);
-
-    // Búsqueda de texto
-    if (q && q.trim()) {
-      filtro.$text = { $search: q.trim() };
-    }
+    if (q && q.trim()) filtro.$text = { $search: q.trim() };
 
     const [proyectos, total] = await Promise.all([
       Proyecto.find(filtro)
@@ -55,20 +50,19 @@ export const misProyectos = async (req, res) => {
   try {
     const usuarioId = req.estudianteBDD._id;
     const {
-      page     = 1,
-      limit    = 10,
+      page      = 1,
+      limit     = 10,
       estado,
       publico,
       categoria,
-      sort     = '-createdAt',
+      sort      = '-createdAt',
     } = req.query;
 
-    // Traer proyectos donde el usuario es autor O colaborador
     const filtro = {
       $or: [
         { autor: usuarioId },
         { colaboradores: usuarioId },
-      ]
+      ],
     };
     if (estado)            filtro.estado    = estado;
     if (publico !== undefined) filtro.publico = publico === 'true';
@@ -85,7 +79,6 @@ export const misProyectos = async (req, res) => {
       Proyecto.countDocuments(filtro),
     ]);
 
-    // Marcar si el usuario es autor o colaborador en cada proyecto
     const proyectosConRol = proyectos.map(p => ({
       ...p,
       rolEnProyecto: p.autor._id.toString() === usuarioId.toString() ? 'autor' : 'colaborador',
@@ -122,15 +115,14 @@ export const obtenerProyecto = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     }
 
-    const esAutor    = estudianteId && proyecto.autor._id.toString() === estudianteId.toString();
-    const esAdmin    = req.estudianteBDD?.rol === 'admin';
-    const esPublico  = proyecto.estado === 'aprobado' && proyecto.publico;
+    const esAutor   = estudianteId && proyecto.autor._id.toString() === estudianteId.toString();
+    const esAdmin   = req.estudianteBDD?.rol === 'admin';
+    const esPublico = proyecto.estado === 'aprobado' && proyecto.publico;
 
     if (!esPublico && !esAutor && !esAdmin) {
       return res.status(403).json({ success: false, message: 'No tienes permiso para ver este proyecto' });
     }
 
-    // Incrementar vistas si es visible públicamente
     if (esPublico) await proyecto.incrementarVistas();
 
     res.status(200).json({ success: true, data: proyecto });
@@ -140,7 +132,7 @@ export const obtenerProyecto = async (req, res) => {
   }
 };
 
-// ===== CREAR PROYECTO — estado siempre pendiente =====
+// ===== CREAR PROYECTO — estado siempre pendiente, publico viene del body =====
 export const crearProyecto = async (req, res) => {
   try {
     const usuarioId = req.estudianteBDD._id;
@@ -148,9 +140,9 @@ export const crearProyecto = async (req, res) => {
 
     const nuevoProyecto = new Proyecto({
       ...req.body,
-      autor:   usuarioId,
-      estado:  'pendiente',   // siempre pendiente, el admin lo aprueba o rechaza
-      publico: false,         // empieza privado hasta que el autor lo publique tras aprobación
+      autor:  usuarioId,
+      estado: 'pendiente', // siempre pendiente, el admin lo aprueba o rechaza
+      // publico viene del body (true/false según elija el autor)
     });
 
     if (req.files?.imagen) {
@@ -180,7 +172,7 @@ export const crearProyecto = async (req, res) => {
   }
 };
 
-// ===== ACTUALIZAR PROYECTO — solo datos, no estado ni publico =====
+// ===== ACTUALIZAR PROYECTO =====
 export const actualizarProyecto = async (req, res) => {
   try {
     const { id } = req.params;
@@ -194,11 +186,11 @@ export const actualizarProyecto = async (req, res) => {
       return res.status(403).json({ success: false, message: 'No tienes permiso para editar este proyecto' });
     }
 
-    // El autor no puede cambiar estado ni publico desde aquí
+    // El autor puede cambiar publico pero NO el estado
     const camposPermitidos = [
       'titulo', 'descripcion', 'categoria', 'asignatura',
       'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio',
-      'enlaceDemo', 'tags', 'carrera', 'nivel',
+      'enlaceDemo', 'tags', 'carrera', 'nivel', 'publico',
     ];
 
     const datosActualizacion = {};
@@ -228,67 +220,6 @@ export const actualizarProyecto = async (req, res) => {
   } catch (error) {
     console.error('Error al actualizar proyecto:', error);
     res.status(500).json({ success: false, message: 'Error al actualizar el proyecto', error: error.message });
-  }
-};
-
-// ===== PUBLICAR PROYECTO — solo el autor, solo si está aprobado =====
-export const publicarProyecto = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const autorId = req.estudianteBDD._id;
-
-    const proyecto = await Proyecto.findById(id);
-    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-
-    if (proyecto.autor.toString() !== autorId.toString()) {
-      return res.status(403).json({ success: false, message: 'Solo el autor puede publicar su proyecto' });
-    }
-
-    if (proyecto.estado !== 'aprobado') {
-      return res.status(400).json({
-        success: false,
-        message: `No puedes publicar este proyecto porque su estado es "${proyecto.estado}". Solo los proyectos aprobados pueden publicarse.`,
-      });
-    }
-
-    if (proyecto.publico) {
-      return res.status(400).json({ success: false, message: 'El proyecto ya está publicado' });
-    }
-
-    proyecto.publico = true;
-    await proyecto.save();
-
-    res.status(200).json({ success: true, message: 'Proyecto publicado. Ya es visible para todos.', data: proyecto });
-  } catch (error) {
-    console.error('Error al publicar proyecto:', error);
-    res.status(500).json({ success: false, message: 'Error al publicar el proyecto', error: error.message });
-  }
-};
-
-// ===== DESPUBLICAR PROYECTO — solo el autor =====
-export const despublicarProyecto = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const autorId = req.estudianteBDD._id;
-
-    const proyecto = await Proyecto.findById(id);
-    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-
-    if (proyecto.autor.toString() !== autorId.toString()) {
-      return res.status(403).json({ success: false, message: 'Solo el autor puede despublicar su proyecto' });
-    }
-
-    if (!proyecto.publico) {
-      return res.status(400).json({ success: false, message: 'El proyecto ya está despublicado' });
-    }
-
-    proyecto.publico = false;
-    await proyecto.save();
-
-    res.status(200).json({ success: true, message: 'Proyecto despublicado. Ya no es visible públicamente.', data: proyecto });
-  } catch (error) {
-    console.error('Error al despublicar proyecto:', error);
-    res.status(500).json({ success: false, message: 'Error al despublicar el proyecto', error: error.message });
   }
 };
 
@@ -384,8 +315,7 @@ export const listarProyectosPorCarrera = async (req, res) => {
   try {
     const { carrera } = req.params;
     const { page = 1, limit = 10 } = req.query;
-    const carreraDecodificada = decodeURIComponent(carrera);
-    const filtro = { carrera: carreraDecodificada, estado: 'aprobado', publico: true };
+    const filtro = { carrera: decodeURIComponent(carrera), estado: 'aprobado', publico: true };
     const proyectos = await Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt')
       .limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
     res.status(200).json({ success: true, data: proyectos });
