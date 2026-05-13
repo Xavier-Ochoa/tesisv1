@@ -5,8 +5,6 @@ import {
   obtenerProyecto,
   crearProyecto,
   actualizarProyecto,
-  publicarProyecto,
-  despublicarProyecto,
   eliminarProyecto,
   listarProyectosPorCategoria,
   listarProyectosPorEstudiante,
@@ -35,32 +33,26 @@ router.get('/categoria/:tipo',       listarProyectosPorCategoria);
 router.get('/carrera/:carrera',      listarProyectosPorCarrera);
 router.get('/estudiante/:id',        listarProyectosPorEstudiante);
 
-// ===== MIS PROYECTOS — va ANTES de /:id para que Express no la intercepte =====
+// ===== MIS PROYECTOS — va ANTES de /:id =====
 router.get('/usuario/mis-proyectos', verificarTokenJWT, misProyectos);
 
-// ===== DETALLE — va DESPUÉS de todas las rutas estáticas =====
+// ===== DETALLE =====
 router.get('/:id',                   verificarTokenOpcional, obtenerProyecto);
 
-// ===== CRUD — usuario logueado =====
+// ===== CRUD =====
 router.post('/',
   verificarTokenJWT,
   validarCrearProyecto,
   manejarErroresValidacion,
   crearProyecto
 );
-
 router.put('/:id',
   verificarTokenJWT,
   validarActualizarProyecto,
   manejarErroresValidacion,
   actualizarProyecto
 );
-
 router.delete('/:id', verificarTokenJWT, eliminarProyecto);
-
-// ===== PUBLICAR / DESPUBLICAR — solo el autor =====
-router.put('/:id/publicar',    verificarTokenJWT, publicarProyecto);
-router.put('/:id/despublicar', verificarTokenJWT, despublicarProyecto);
 
 // ===== LIKES =====
 router.post('/:id/like',   verificarTokenJWT, agregarLike);
