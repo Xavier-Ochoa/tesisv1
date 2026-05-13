@@ -28,16 +28,18 @@ import { manejarErroresValidacion } from '../middlewares/validaciones.js';
 const router = Router();
 
 // ===== RUTAS PÚBLICAS — landing, solo aprobado+publico =====
-router.get('/',                     listarProyectos);
-router.get('/destacados',           proyectosDestacados);
-router.get('/buscar',               buscarProyectos);
-router.get('/categoria/:tipo',      listarProyectosPorCategoria);
-router.get('/carrera/:carrera',     listarProyectosPorCarrera);
-router.get('/estudiante/:id',       listarProyectosPorEstudiante);
-router.get('/:id',                  verificarTokenOpcional, obtenerProyecto);
+router.get('/',                      listarProyectos);
+router.get('/destacados',            proyectosDestacados);
+router.get('/buscar',                buscarProyectos);
+router.get('/categoria/:tipo',       listarProyectosPorCategoria);
+router.get('/carrera/:carrera',      listarProyectosPorCarrera);
+router.get('/estudiante/:id',        listarProyectosPorEstudiante);
 
-// ===== MIS PROYECTOS — usuario logueado ve solo los suyos =====
+// ===== MIS PROYECTOS — va ANTES de /:id para que Express no la intercepte =====
 router.get('/usuario/mis-proyectos', verificarTokenJWT, misProyectos);
+
+// ===== DETALLE — va DESPUÉS de todas las rutas estáticas =====
+router.get('/:id',                   verificarTokenOpcional, obtenerProyecto);
 
 // ===== CRUD — usuario logueado =====
 router.post('/',
@@ -57,12 +59,12 @@ router.put('/:id',
 router.delete('/:id', verificarTokenJWT, eliminarProyecto);
 
 // ===== PUBLICAR / DESPUBLICAR — solo el autor =====
-router.put('/:id/publicar',     verificarTokenJWT, publicarProyecto);
-router.put('/:id/despublicar',  verificarTokenJWT, despublicarProyecto);
+router.put('/:id/publicar',    verificarTokenJWT, publicarProyecto);
+router.put('/:id/despublicar', verificarTokenJWT, despublicarProyecto);
 
 // ===== LIKES =====
-router.post('/:id/like',    verificarTokenJWT, agregarLike);
-router.delete('/:id/like',  verificarTokenJWT, quitarLike);
+router.post('/:id/like',   verificarTokenJWT, agregarLike);
+router.delete('/:id/like', verificarTokenJWT, quitarLike);
 
 // ===== COMENTARIOS =====
 router.post('/:id/comentarios',
@@ -74,8 +76,8 @@ router.post('/:id/comentarios',
 router.delete('/:id/comentarios/:comentarioId', verificarTokenJWT, eliminarComentario);
 
 // ===== COLABORADORES — solo docentes =====
-router.get('/:id/colaboradores',                        verificarTokenJWT, listarColaboradores);
-router.post('/:id/colaboradores',                       verificarTokenJWT, verificarDocente, agregarColaborador);
-router.delete('/:id/colaboradores/:colaboradorId',      verificarTokenJWT, verificarDocente, eliminarColaborador);
+router.get('/:id/colaboradores',                   verificarTokenJWT, listarColaboradores);
+router.post('/:id/colaboradores',                  verificarTokenJWT, verificarDocente, agregarColaborador);
+router.delete('/:id/colaboradores/:colaboradorId', verificarTokenJWT, verificarDocente, eliminarColaborador);
 
 export default router;
