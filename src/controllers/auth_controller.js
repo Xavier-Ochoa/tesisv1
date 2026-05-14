@@ -172,9 +172,18 @@ const recuperarPassword = async (req, res) => {
 const comprobarTokenPasword = async (req, res) => {
     try {
         const { token } = req.params;
-        // +token necesario porque tiene select:false en el modelo
-        const usuarioBDD = await Estudiante.findOne({ token }).select('+token');
+        // +token y +tokenExpira necesarios porque tienen select:false en el modelo
+        const usuarioBDD = await Estudiante.findOne({ token }).select('+token +tokenExpira');
         if (usuarioBDD?.token !== token) return res.status(404).json({ msg: 'Token inválido o expirado' });
+
+        // Verificar que el token no haya vencido (1 hora de vigencia)
+        if (!usuarioBDD.tokenExpira || usuarioBDD.tokenExpira < new Date()) {
+            usuarioBDD.token       = null;
+            usuarioBDD.tokenExpira = null;
+            await usuarioBDD.save();
+            return res.status(400).json({ msg: 'El enlace ha expirado. Solicita uno nuevo.' });
+        }
+
         res.status(200).json({ msg: 'Token confirmado. Ya puedes crear tu nueva contraseña.' });
     } catch (error) {
         console.error(error);
@@ -189,12 +198,21 @@ const crearNuevoPassword = async (req, res) => {
         const { token } = req.params;
 
         // Las validaciones de formato y confirmación ya las hizo validarNuevoPassword
-        // +token necesario porque tiene select:false en el modelo
-        const usuarioBDD = await Estudiante.findOne({ token }).select('+token');
+        // +token y +tokenExpira necesarios porque tienen select:false en el modelo
+        const usuarioBDD = await Estudiante.findOne({ token }).select('+token +tokenExpira');
         if (!usuarioBDD) return res.status(404).json({ msg: 'Token inválido o expirado' });
 
-        usuarioBDD.password = await usuarioBDD.encryptPassword(password);
-        usuarioBDD.token    = null;
+        // Verificar que el token no haya vencido (1 hora de vigencia)
+        if (!usuarioBDD.tokenExpira || usuarioBDD.tokenExpira < new Date()) {
+            usuarioBDD.token       = null;
+            usuarioBDD.tokenExpira = null;
+            await usuarioBDD.save();
+            return res.status(400).json({ msg: 'El enlace ha expirado. Solicita uno nuevo.' });
+        }
+
+        usuarioBDD.password    = await usuarioBDD.encryptPassword(password);
+        usuarioBDD.token       = null;
+        usuarioBDD.tokenExpira = null; // limpiar junto con el token
         await usuarioBDD.save();
 
         res.status(200).json({ msg: '¡Contraseña actualizada! Ya puedes iniciar sesión.' });
