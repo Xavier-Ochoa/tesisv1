@@ -61,8 +61,12 @@ const usuarioSchema = new Schema(
     // CAMPOS AUTOMÁTICOS — generados por el backend
     // ─────────────────────────────────────────────
     estado: {
-      type: Boolean,
-      default: true,
+      type: String,
+      enum: {
+        values: ['activo', 'inactivo'],
+        message: 'El estado debe ser "activo" o "inactivo"',
+      },
+      default: 'activo',
       // No se expone en consultas por defecto ni se acepta desde el cliente
       select: false,
     },
