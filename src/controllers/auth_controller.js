@@ -80,7 +80,7 @@ const registro = async (req, res) => {
             email: email.toLowerCase(),
             rol: rolAsignado,
             // Campos automáticos — valores por defecto del modelo:
-            // estado: true, fechaRegistro: now, confirmEmail: false
+            // estado: 'activo', fechaRegistro: now, confirmEmail: false
         });
 
         // Encriptar contraseña
@@ -154,9 +154,18 @@ const recuperarPassword = async (req, res) => {
     try {
         const { email } = req.body;
         if (!email) return res.status(400).json({ msg: 'Debes ingresar tu correo institucional' });
-        // +token necesario porque tiene select:false en el modelo
-        const usuarioBDD = await Estudiante.findOne({ email: email.toLowerCase() }).select('+token');
+        // +token, +estado y +confirmEmail necesarios porque tienen select:false en el modelo
+        const usuarioBDD = await Estudiante.findOne({ email: email.toLowerCase() }).select('+token +estado +confirmEmail');
         if (!usuarioBDD) return res.status(404).json({ msg: 'El usuario no se encuentra registrado' });
+
+        // Verificar que la cuenta esté activa
+        if (usuarioBDD.estado === 'inactivo')
+            return res.status(403).json({ msg: 'Tu cuenta ha sido suspendida. Contacta con el administrador.' });
+
+        // Verificar que el correo haya sido confirmado
+        if (!usuarioBDD.confirmEmail)
+            return res.status(403).json({ msg: 'Debes confirmar tu correo institucional antes de recuperar tu contraseña.' });
+
         const token = usuarioBDD.createToken();
         usuarioBDD.token = token;
         await sendMailToRecoveryPassword(email, token);
@@ -241,8 +250,8 @@ const login = async (req, res) => {
         if (!usuarioBDD.confirmEmail)
             return res.status(403).json({ msg: 'Debes confirmar tu correo institucional antes de iniciar sesión' });
 
-        if (!usuarioBDD.estado)
-            return res.status(403).json({ msg: 'Tu cuenta ha sido deshabilitada. Contacta al administrador.' });
+        if (usuarioBDD.estado === 'inactivo')
+            return res.status(403).json({ msg: 'Tu cuenta ha sido suspendida. Contacta con el administrador.' });
 
         const passwordValido = await usuarioBDD.matchPassword(password);
         if (!passwordValido)
