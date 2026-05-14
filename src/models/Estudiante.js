@@ -84,6 +84,13 @@ const usuarioSchema = new Schema(
       default: null,
       select: false,
     },
+    // Fecha de expiración del token de recuperación de contraseña (1 hora desde su generación)
+    // Nunca se devuelve en respuestas al cliente
+    tokenExpira: {
+      type: Date,
+      default: null,
+      select: false,
+    },
 
     // ─────────────────────────────────────────────
     // CAMPOS DE PERFIL — opcionales (editar perfil)
@@ -148,9 +155,11 @@ usuarioSchema.methods.matchPassword = async function (password) {
 };
 
 // Generar token interno (verificación de correo / recuperación de contraseña)
+// Para recuperación de contraseña el token expira en 1 hora
 usuarioSchema.methods.createToken = function () {
   const tokenGenerado = Math.random().toString(36).slice(2);
   this.token = tokenGenerado;
+  this.tokenExpira = new Date(Date.now() + 60 * 60 * 1000); // 1 hora desde ahora
   return tokenGenerado;
 };
 
