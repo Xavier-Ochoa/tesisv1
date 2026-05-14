@@ -145,11 +145,8 @@ export const validarActualizarPerfil = [
  */
 export const validarCambiarPassword = [
 
-  // Contraseña actual — solo verificar que viene (el controlador la compara contra la BDD)
+  // Contraseña actual — verificar que al menos uno de los dos aliases llegó y no está vacío
   body(['passwordactual', 'contraseñaActual'])
-    .if((value, { req }) =>
-      req.body.passwordactual === undefined && req.body['contraseñaActual'] === undefined
-    )
     .notEmpty().withMessage('La contraseña actual es obligatoria'),
 
   // Nueva contraseña — aplicar todas las reglas de seguridad
