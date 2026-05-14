@@ -57,6 +57,11 @@ const verificarTokenJWT = async (req, res, next) => {
             return res.status(401).json({ msg: "Usuario no encontrado" })
         }
 
+        // Verificar que la cuenta esté activa
+        if (estudianteBDD.estado === 'inactivo') {
+            return res.status(403).json({ msg: 'Tu cuenta ha sido suspendida. Contacta con el administrador.' })
+        }
+
         // Adjuntar usuario y token a la request (el token se necesita en logout)
         req.estudianteHeader = estudianteBDD
         req.estudianteBDD    = estudianteBDD
