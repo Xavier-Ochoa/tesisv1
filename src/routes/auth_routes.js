@@ -22,6 +22,7 @@ import {
   validarNuevoPassword,
 } from '../validators/auth_validators.js';
 import { manejarErroresValidacion } from '../middlewares/validaciones.js';
+import { loginRateLimit } from '../middlewares/loginRateLimit.js';
 
 const router = Router();
 
@@ -43,7 +44,7 @@ router.post(
  * POST /api/auth/login
  * Body: correoInstitucional (o email), contraseña (o password)
  */
-router.post('/login', login);
+router.post('/login', loginRateLimit, login);
 
 // Confirmar correo institucional
 router.get('/confirm/:token', confirmarMail);
