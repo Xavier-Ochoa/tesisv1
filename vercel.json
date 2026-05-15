@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "installCommand": "npm install --legacy-peer-deps --prefer-offline || npm install --legacy-peer-deps",
   "builds": [
     {
       "src": "src/index.js",
