@@ -156,6 +156,83 @@ export const eliminarUsuario = async (req, res) => {
 };
 
 /**
+ * Cambiar el estado de un usuario (activo / inactivo).
+ * Solo para administradores.
+ * El admin NO puede cambiar su propio estado.
+ */
+export const cambiarEstadoUsuario = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { estado } = req.body;
+    const adminId = req.estudianteBDD._id.toString();
+
+    // Validar que se envió el campo estado
+    if (!estado) {
+      return res.status(400).json({
+        success: false,
+        message: 'El campo "estado" es obligatorio',
+      });
+    }
+
+    // Validar que el valor sea uno de los permitidos
+    const estadosValidos = ['activo', 'inactivo'];
+    if (!estadosValidos.includes(estado)) {
+      return res.status(400).json({
+        success: false,
+        message: 'El estado debe ser "activo" o "inactivo"',
+      });
+    }
+
+    // Impedir que el admin cambie su propio estado
+    if (id === adminId) {
+      return res.status(400).json({
+        success: false,
+        message: 'No puedes cambiar el estado de tu propia cuenta de administrador',
+      });
+    }
+
+    const usuario = await Estudiante.findById(id).select('+estado');
+    if (!usuario) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado',
+      });
+    }
+
+    // Evitar actualización innecesaria si ya tiene ese estado
+    if (usuario.estado === estado) {
+      return res.status(400).json({
+        success: false,
+        message: `El usuario ya se encuentra en estado "${estado}"`,
+      });
+    }
+
+    usuario.estado = estado;
+    await usuario.save();
+
+    res.status(200).json({
+      success: true,
+      message: `El estado del usuario ${usuario.nombre} ${usuario.apellido} fue cambiado a "${estado}" correctamente`,
+      data: {
+        id:      usuario._id,
+        nombre:  usuario.nombre,
+        apellido: usuario.apellido,
+        email:   usuario.email,
+        estado:  usuario.estado,
+      },
+    });
+
+  } catch (error) {
+    console.error('Error al cambiar estado del usuario:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al cambiar el estado del usuario',
+      error: error.message,
+    });
+  }
+};
+
+/**
  * Estadísticas de usuarios.
  * FIX: ya no filtra solo 'estudiante' — incluye todos los roles.
  * Solo para administradores.
