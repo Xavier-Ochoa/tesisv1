@@ -1,5 +1,5 @@
 import { getRandomImage } from "../services/imagenFondo.js";
-import { sendMailToRecoveryPassword, sendMailToRegister } from "../helpers/sendMail.js"
+import { sendMailToRecoveryPassword, sendMailToRegister, sendMailToPasswordChanged } from "../helpers/sendMail.js"
 import Estudiante from "../models/Estudiante.js"
 import TokenBlacklist from "../models/TokenBlacklist.js"
 import { getRandomQuote } from "../services/frases.js";
@@ -420,6 +420,14 @@ const actualizarPassword = async (req, res) => {
 
         usuarioBDD.password = await usuarioBDD.encryptPassword(passwordNuevo);
         await usuarioBDD.save();
+
+        // Notificar al usuario por correo — no bloquea la respuesta si falla
+        try {
+            await sendMailToPasswordChanged(usuarioBDD.email, usuarioBDD.nombre);
+        } catch (emailError) {
+            console.error('⚠️ No se pudo enviar el correo de notificación de cambio de contraseña:', emailError.message);
+        }
+
         res.status(200).json({ msg: 'Contraseña actualizada correctamente' });
     } catch (error) {
         res.status(500).json({ msg: `❌ Error en el servidor - ${error}` });
