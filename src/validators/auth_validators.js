@@ -153,12 +153,12 @@ export const validarCambiarPassword = [
   reglasPassword('passwordnuevo'),
   reglasPassword('contraseñaNueva'),
 
-  // Confirmación — debe coincidir con la nueva contraseña
+  // Confirmación — obligatoria y debe coincidir con la nueva contraseña
   body('confirmarPassword')
-    .optional()
+    .notEmpty().withMessage('Debes confirmar la nueva contraseña')
     .custom((value, { req }) => {
       const nueva = req.body.passwordnuevo || req.body['contraseñaNueva'];
-      if (value && value !== nueva) {
+      if (value !== nueva) {
         throw new Error('Las contraseñas no coinciden');
       }
       return true;
