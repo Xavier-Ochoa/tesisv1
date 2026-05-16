@@ -157,7 +157,81 @@ const sendMailToRecoveryPassword = (userMail, token) => {
     )
 }
 
+/**
+ * Enviar email de notificación de cambio de contraseña
+ * @param {string} userMail  - Email del estudiante
+ * @param {string} nombre    - Nombre del estudiante para personalizar el saludo
+ * @returns {Promise} Resultado del envío del email
+ */
+const sendMailToPasswordChanged = (userMail, nombre) => {
+    const fecha = new Date().toLocaleString('es-EC', {
+        timeZone: 'America/Guayaquil',
+        dateStyle: 'full',
+        timeStyle: 'short',
+    });
+
+    return sendMail(
+        userMail,
+        "Aviso de seguridad — Tu contraseña fue cambiada 🔒",
+        `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 28px; border: 1px solid #e0e0e0; border-radius: 12px; background: #ffffff;">
+
+                <!-- HEADER -->
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <h1 style="color: #1a3c5e; margin: 0 0 6px 0;">🔒 Cambio de Contraseña</h1>
+                    <p style="color: #666; font-size: 15px; margin: 0;">Sistema de Proyectos ESFOT · EPN</p>
+                </div>
+
+                <!-- SALUDO -->
+                <p style="color: #333; font-size: 15px; line-height: 1.7; margin-bottom: 20px;">
+                    Hola <strong>${nombre}</strong>, te informamos que la contraseña de tu cuenta fue
+                    actualizada exitosamente.
+                </p>
+
+                <!-- CAJA DE CONFIRMACIÓN -->
+                <div style="background: #f0f7f0; border: 2px solid #2e7d32; border-radius: 10px; padding: 20px 24px; text-align: center; margin-bottom: 24px;">
+                    <p style="margin: 0 0 6px 0; font-size: 13px; color: #555; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">
+                        ✅ Cambio registrado el
+                    </p>
+                    <p style="margin: 0; font-size: 16px; font-weight: 700; color: #2e7d32;">
+                        ${fecha}
+                    </p>
+                </div>
+
+                <!-- ADVERTENCIA SI NO FUE EL USUARIO -->
+                <div style="background: #fff3e0; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; border-left: 4px solid #ff9800;">
+                    <p style="margin: 0 0 6px 0; color: #e65100; font-size: 14px; font-weight: 700;">⚠️ ¿No reconoces este cambio?</p>
+                    <p style="margin: 0; color: #444; font-size: 14px; line-height: 1.8;">
+                        Si no fuiste tú quien realizó este cambio, tu cuenta puede estar comprometida.
+                        Contacta de inmediato al administrador del sistema para proteger tu cuenta.
+                    </p>
+                </div>
+
+                <!-- RECOMENDACIONES -->
+                <div style="background: #e8f4f8; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px;">
+                    <p style="margin: 0 0 8px 0; color: #003366; font-size: 14px; font-weight: 700;">🛡️ Recomendaciones de seguridad</p>
+                    <ul style="color: #444; font-size: 14px; line-height: 1.9; margin: 0; padding-left: 18px;">
+                        <li>Nunca compartas tu contraseña con nadie.</li>
+                        <li>Usa una contraseña única para esta plataforma.</li>
+                        <li>Si sospechas actividad inusual, cierra sesión en todos tus dispositivos.</li>
+                    </ul>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 24px 0;">
+
+                <footer style="text-align: center; color: #aaa; font-size: 12px;">
+                    <p style="margin: 4px 0;"><strong style="color: #003366;">Escuela de Formación de Tecnólogos (ESFOT)</strong></p>
+                    <p style="margin: 4px 0;">Escuela Politécnica Nacional</p>
+                    <p style="margin: 12px 0 0 0; color: #bbb;">Este es un mensaje automático, por favor no respondas a este correo.</p>
+                </footer>
+
+            </div>
+        `
+    );
+};
+
 export {
     sendMailToRegister,
-    sendMailToRecoveryPassword
+    sendMailToRecoveryPassword,
+    sendMailToPasswordChanged,
 }
