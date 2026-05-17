@@ -117,6 +117,14 @@ export const validarActualizarPerfil = [
     .notEmpty().withMessage('El usuario de GitHub no puede ser un valor vacío'),
 
   // Campos bloqueados — devuelve error claro si se intenta modificar
+  body('nombre')
+    .not().exists()
+    .withMessage('El nombre no puede modificarse después del registro'),
+
+  body('apellido')
+    .not().exists()
+    .withMessage('El apellido no puede modificarse después del registro'),
+
   body('correoInstitucional')
     .not().exists()
     .withMessage('El correo institucional no puede modificarse después del registro'),
