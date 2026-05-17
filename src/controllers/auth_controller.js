@@ -336,7 +336,7 @@ const actualizarPerfil = async (req, res) => {
         req.body = req.body ?? {};
 
         // Bloquear campos inmutables
-        const camposBloqueados = ['nombre', 'cedula', 'email', 'correoInstitucional', 'rol'];
+        const camposBloqueados = ['nombre', 'apellido', 'cedula', 'email', 'correoInstitucional', 'rol'];
         const intentoModificar = camposBloqueados.filter(campo => req.body[campo] !== undefined);
         if (intentoModificar.length > 0) {
             return res.status(400).json({
@@ -378,9 +378,8 @@ const actualizarPerfil = async (req, res) => {
         }
 
         // Aplicar solo los campos de perfil permitidos
-        const { apellido, carrera, semestre, telefono, descripcion, github } = req.body;
+        const { carrera, semestre, telefono, descripcion, github } = req.body;
 
-        usuarioBDD.apellido    = apellido    ?? usuarioBDD.apellido;
         usuarioBDD.carrera     = carrera     ?? usuarioBDD.carrera;
         usuarioBDD.semestre    = semestre    ?? usuarioBDD.semestre;
         usuarioBDD.telefono    = telefono    ?? usuarioBDD.telefono;
