@@ -139,7 +139,7 @@ const sendMailToRecoveryPassword = (userMail, token) => {
                 <!-- ADVERTENCIA -->
                 <div style="background: #ffebee; border-radius: 8px; padding: 14px 18px; margin-bottom: 24px; border-left: 4px solid #d32f2f;">
                     <p style="margin: 0; color: #333; font-size: 13px; line-height: 1.8;">
-                        <strong>⚠️ Importante:</strong> este token es de uso único y expira en <strong>24 horas</strong>. 
+                        <strong>⚠️ Importante:</strong> este token es de uso único y expira en <strong>1 hora</strong>. 
                         No lo compartas con nadie.
                     </p>
                 </div>
