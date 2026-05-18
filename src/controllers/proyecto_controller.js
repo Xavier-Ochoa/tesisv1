@@ -209,6 +209,12 @@ export const actualizarProyecto = async (req, res) => {
       datosActualizacion.imagenesID = [public_id];
     }
 
+    // Si el proyecto estaba aprobado o rechazado, vuelve a pendiente para nueva revisión.
+    // El motivoRechazo se conserva para que el admin vea el historial; se borrará al aprobar.
+    if (proyecto.estado === 'aprobado' || proyecto.estado === 'rechazado') {
+      datosActualizacion.estado = 'pendiente';
+    }
+
     const proyectoActualizado = await Proyecto.findByIdAndUpdate(
       id,
       { $set: datosActualizacion },
