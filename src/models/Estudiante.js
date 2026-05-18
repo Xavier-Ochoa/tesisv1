@@ -113,6 +113,18 @@ const usuarioSchema = new Schema(
       type: String,
       trim: true,
       default: null,
+      enum: {
+        values: [
+          null,
+          'Agua y Saneamiento Ambiental',
+          'Desarrollo de Software',
+          'Electromecánica',
+          'Redes y Telecomunicaciones',
+          'Procesamiento de Alimentos',
+          'Procesamiento industrial de la madera',
+        ],
+        message: 'La carrera "{VALUE}" no es válida. Las carreras permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento industrial de la madera',
+      },
     },
     // Solo aplica para estudiantes
     semestre: {
