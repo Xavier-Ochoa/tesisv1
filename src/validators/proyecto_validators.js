@@ -65,7 +65,15 @@ export const validarCrearProyecto = [
 
   body('carrera')
     .trim()
-    .notEmpty().withMessage('La carrera es obligatoria'),
+    .notEmpty().withMessage('La carrera es obligatoria')
+    .isIn([
+      'Agua y Saneamiento Ambiental',
+      'Desarrollo de Software',
+      'Electromecánica',
+      'Redes y Telecomunicaciones',
+      'Procesamiento de Alimentos',
+      'Procesamiento industrial de la madera',
+    ]).withMessage('La carrera no es válida. Las opciones permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento industrial de la madera'),
 
   body('asignatura')
     .optional()
@@ -120,7 +128,7 @@ export const validarCrearProyecto = [
 
   body('nivel')
     .optional()
-    .isInt({ min: 1, max: 6 }).withMessage('El nivel debe ser un número entre 1 y 6'),
+    .isInt({ min: 0, max: 5 }).withMessage('El nivel debe ser un número entre 0 y 5'),
 
   // ISSUE 1 FIX: usando el helper reutilizable
   validarCampoPublico,
@@ -146,6 +154,22 @@ export const validarActualizarProyecto = [
   body('categoria')
     .optional()
     .isIn(['academico', 'extracurricular']).withMessage('La categoría debe ser "academico" o "extracurricular"'),
+
+  body('carrera')
+    .optional()
+    .trim()
+    .isIn([
+      'Agua y Saneamiento Ambiental',
+      'Desarrollo de Software',
+      'Electromecánica',
+      'Redes y Telecomunicaciones',
+      'Procesamiento de Alimentos',
+      'Procesamiento industrial de la madera',
+    ]).withMessage('La carrera no es válida. Las opciones permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento industrial de la madera'),
+
+  body('nivel')
+    .optional()
+    .isInt({ min: 0, max: 5 }).withMessage('El nivel debe ser un número entre 0 y 5'),
 
   body('fechaInicio')
     .optional()
