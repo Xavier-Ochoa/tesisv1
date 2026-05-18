@@ -434,6 +434,8 @@ export const agregarColaborador = async (req, res) => {
     const colaborador = await Estudiante.findById(colaboradorId);
     if (!colaborador) return res.status(404).json({ success: false, message: 'El usuario colaborador no existe' });
     if (colaborador.rol !== 'estudiante') return res.status(400).json({ success: false, message: 'Solo se pueden agregar estudiantes como colaboradores' });
+    if (!colaborador.confirmEmail) return res.status(400).json({ success: false, message: 'El colaborador no ha confirmado su correo electrónico' });
+    if (colaborador.estado !== 'activo') return res.status(400).json({ success: false, message: 'El colaborador tiene la cuenta suspendida o inactiva' });
     if (proyecto.colaboradores.includes(colaboradorId)) return res.status(400).json({ success: false, message: 'El colaborador ya está en el proyecto' });
     proyecto.colaboradores.push(colaboradorId);
     await proyecto.save();
