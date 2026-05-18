@@ -23,7 +23,7 @@ const router = Router();
  * Query params opcionales:
  * - rol:      "estudiante" | "docente" | "admin"  → filtra por rol
  * - carrera:  String  → filtro exacto
- * - semestre: Number (1-8) → filtro exacto
+ * - semestre: Number (0-5) → filtro exacto
  * - apellido: String → búsqueda parcial (case insensitive)
  *
  * Ejemplos:
