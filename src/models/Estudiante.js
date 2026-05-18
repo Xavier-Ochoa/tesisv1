@@ -129,8 +129,8 @@ const usuarioSchema = new Schema(
     // Solo aplica para estudiantes
     semestre: {
       type: Number,
-      min: [1, 'El semestre debe ser al menos 1'],
-      max: [8, 'El semestre no puede ser mayor a 8'],
+      min: [0, 'El semestre debe ser al menos 0'],
+      max: [5, 'El semestre no puede ser mayor a 5'],
       default: null,
     },
     telefono: {
