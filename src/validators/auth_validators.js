@@ -95,7 +95,15 @@ export const validarActualizarPerfil = [
   body('carrera')
     .optional()
     .trim()
-    .notEmpty().withMessage('La carrera no puede ser un valor vacío'),
+    .notEmpty().withMessage('La carrera no puede ser un valor vacío')
+    .isIn([
+      'Agua y Saneamiento Ambiental',
+      'Desarrollo de Software',
+      'Electromecánica',
+      'Redes y Telecomunicaciones',
+      'Procesamiento de Alimentos',
+      'Procesamiento industrial de la madera',
+    ]).withMessage('La carrera no es válida. Las opciones permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento industrial de la madera'),
 
   body('semestre')
     .optional()
