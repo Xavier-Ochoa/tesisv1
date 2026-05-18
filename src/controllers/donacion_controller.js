@@ -15,10 +15,10 @@ export const donarPlataforma = async (req, res) => {
       });
     }
 
-    if (monto <= 0) {
+    if (monto < 2 || monto > 1000) {
       return res.status(400).json({
         success: false,
-        message: "El monto debe ser mayor a 0",
+        message: "El monto debe estar entre $2 y $1000",
       });
     }
 
