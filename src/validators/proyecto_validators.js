@@ -28,6 +28,33 @@ const validarElementosArray = (elementos, campo) => {
   return true;
 };
 
+// Helper reutilizable para validar múltiples imágenes (campo "imagenes", máx 5)
+const validarImagenesOpcionales = body().custom((value, { req }) => {
+  if (!req.files?.imagenes) return true; // campo opcional
+
+  const archivos = Array.isArray(req.files.imagenes)
+    ? req.files.imagenes
+    : [req.files.imagenes];
+
+  if (archivos.length > 5) {
+    throw new Error('Solo se permiten máximo 5 imágenes por proyecto');
+  }
+
+  const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+  const invalidos = archivos.filter(f => !tiposPermitidos.includes(f.mimetype));
+  if (invalidos.length > 0) {
+    throw new Error('Solo se permiten imágenes en formato JPG, PNG o WEBP');
+  }
+
+  const maxSize = 5 * 1024 * 1024; // 5 MB
+  const grandes = archivos.filter(f => f.size > maxSize);
+  if (grandes.length > 0) {
+    throw new Error('Cada imagen no debe superar los 5 MB');
+  }
+
+  return true;
+});
+
 // Helper reutilizable para validar el campo publico
 const validarCampoPublico = body('publico')
   .optional()
@@ -132,6 +159,9 @@ export const validarCrearProyecto = [
 
   // ISSUE 1 FIX: usando el helper reutilizable
   validarCampoPublico,
+
+  // Imágenes opcionales (máx 5, campo "imagenes")
+  validarImagenesOpcionales,
 ];
 
 /**
@@ -210,6 +240,9 @@ export const validarActualizarProyecto = [
 
   // ISSUE 1 FIX: publico ahora también se valida en el update
   validarCampoPublico,
+
+  // Imágenes opcionales al actualizar (se agregan a las existentes, máx 5 en total)
+  validarImagenesOpcionales,
 ];
 
 /**
