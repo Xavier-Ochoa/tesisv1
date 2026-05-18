@@ -117,13 +117,24 @@ const proyectoSchema = new Schema(
     // Carrera
     carrera: {
       type: String,
-      required: true,      
+      required: true,
+      enum: {
+        values: [
+          'Agua y Saneamiento Ambiental',
+          'Desarrollo de Software',
+          'Electromecánica',
+          'Redes y Telecomunicaciones',
+          'Procesamiento de Alimentos',
+          'Procesamiento industrial de la madera',
+        ],
+        message: 'La carrera "{VALUE}" no es válida. Las carreras permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento industrial de la madera',
+      },
     },
 
     nivel: {
       type: Number,
-      min: 1,
-      max: 6,
+      min: [0, 'El nivel debe ser al menos 0'],
+      max: [5, 'El nivel no puede ser mayor a 5'],
     },
 
     // Visibilidad
