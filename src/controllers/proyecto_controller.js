@@ -145,10 +145,23 @@ export const crearProyecto = async (req, res) => {
       // publico viene del body (true/false según elija el autor)
     });
 
-    if (req.files?.imagen) {
-      const { secure_url, public_id } = await subirImagenCloudinary(req.files.imagen.tempFilePath, 'Proyectos');
-      nuevoProyecto.imagenes   = [secure_url];
-      nuevoProyecto.imagenesID = [public_id];
+    if (req.files?.imagenes) {
+      // Normalizar a array (express-fileupload devuelve objeto si es 1 sola, array si son varias)
+      const archivos = Array.isArray(req.files.imagenes)
+        ? req.files.imagenes
+        : [req.files.imagenes];
+
+      // Máximo 5 imágenes
+      const archivosLimitados = archivos.slice(0, 5);
+
+      const subidas = await Promise.all(
+        archivosLimitados.map(archivo =>
+          subirImagenCloudinary(archivo.tempFilePath, 'Proyectos')
+        )
+      );
+
+      nuevoProyecto.imagenes   = subidas.map(s => s.secure_url);
+      nuevoProyecto.imagenesID = subidas.map(s => s.public_id);
     }
 
     await nuevoProyecto.save();
@@ -198,15 +211,32 @@ export const actualizarProyecto = async (req, res) => {
       if (req.body[campo] !== undefined) datosActualizacion[campo] = req.body[campo];
     }
 
-    if (req.files?.imagen) {
-      if (proyecto.imagenesID?.length > 0) {
-        for (const pid of proyecto.imagenesID) {
-          try { await eliminarImagenCloudinary(pid); } catch (e) { console.error(e); }
-        }
+    if (req.files?.imagenes) {
+      // Normalizar a array
+      const archivos = Array.isArray(req.files.imagenes)
+        ? req.files.imagenes
+        : [req.files.imagenes];
+
+      const nuevasCantidad = archivos.length;
+      const actualesCount  = proyecto.imagenes?.length ?? 0;
+
+      // Validar que el total no supere 5
+      if (actualesCount + nuevasCantidad > 5) {
+        return res.status(400).json({
+          success: false,
+          message: `Un proyecto puede tener máximo 5 imágenes. Ya tiene ${actualesCount} y estás intentando agregar ${nuevasCantidad}.`,
+        });
       }
-      const { secure_url, public_id } = await subirImagenCloudinary(req.files.imagen.tempFilePath, 'Proyectos');
-      datosActualizacion.imagenes   = [secure_url];
-      datosActualizacion.imagenesID = [public_id];
+
+      const subidas = await Promise.all(
+        archivos.map(archivo =>
+          subirImagenCloudinary(archivo.tempFilePath, 'Proyectos')
+        )
+      );
+
+      // Agregar las nuevas a las existentes
+      datosActualizacion.imagenes   = [...(proyecto.imagenes ?? []),   ...subidas.map(s => s.secure_url)];
+      datosActualizacion.imagenesID = [...(proyecto.imagenesID ?? []), ...subidas.map(s => s.public_id)];
     }
 
     // Si el proyecto estaba aprobado o rechazado, vuelve a pendiente para nueva revisión.
@@ -478,5 +508,51 @@ export const listarColaboradores = async (req, res) => {
     res.status(200).json({ success: true, total: proyecto.colaboradores.length, data: proyecto.colaboradores });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error al obtener colaboradores', error: error.message });
+  }
+};
+
+// ===== ELIMINAR IMAGEN ESPECÍFICA DE UN PROYECTO =====
+export const eliminarImagenProyecto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { indice } = req.body; // índice 0-4 de la imagen a eliminar
+    const estudianteId = req.estudianteBDD._id;
+
+    if (indice === undefined || indice === null) {
+      return res.status(400).json({ success: false, message: 'Debes indicar el índice de la imagen a eliminar (indice: 0-4)' });
+    }
+
+    const proyecto = await Proyecto.findById(id);
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+
+    if (proyecto.autor.toString() !== estudianteId.toString()) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para editar este proyecto' });
+    }
+
+    const idx = parseInt(indice);
+    if (isNaN(idx) || idx < 0 || idx >= proyecto.imagenes.length) {
+      return res.status(400).json({ success: false, message: `Índice inválido. El proyecto tiene ${proyecto.imagenes.length} imagen(es), los índices válidos son 0 a ${proyecto.imagenes.length - 1}` });
+    }
+
+    // Eliminar de Cloudinary
+    const publicId = proyecto.imagenesID[idx];
+    if (publicId) {
+      try { await eliminarImagenCloudinary(publicId); } catch (e) { console.error('Error al eliminar de Cloudinary:', e); }
+    }
+
+    // Quitar del array
+    proyecto.imagenes.splice(idx, 1);
+    proyecto.imagenesID.splice(idx, 1);
+
+    await proyecto.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Imagen eliminada correctamente',
+      data: { imagenes: proyecto.imagenes, total: proyecto.imagenes.length },
+    });
+  } catch (error) {
+    console.error('Error al eliminar imagen:', error);
+    res.status(500).json({ success: false, message: 'Error al eliminar la imagen', error: error.message });
   }
 };
