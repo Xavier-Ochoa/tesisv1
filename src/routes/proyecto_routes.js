@@ -18,6 +18,7 @@ import {
   agregarColaborador,
   eliminarColaborador,
   listarColaboradores,
+  eliminarImagenProyecto,
 } from '../controllers/proyecto_controller.js';
 import { verificarTokenJWT, verificarDocente, verificarTokenOpcional } from '../middlewares/JWT.js';
 import { validarCrearProyecto, validarActualizarProyecto, validarAgregarComentario } from '../validators/proyecto_validators.js';
@@ -53,6 +54,10 @@ router.put('/:id',
   actualizarProyecto
 );
 router.delete('/:id', verificarTokenJWT, eliminarProyecto);
+
+// ===== IMÁGENES =====
+// DELETE /proyectos/:id/imagenes  body: { indice: 0 }
+router.delete('/:id/imagenes', verificarTokenJWT, eliminarImagenProyecto);
 
 // ===== LIKES =====
 router.post('/:id/like',   verificarTokenJWT, agregarLike);
