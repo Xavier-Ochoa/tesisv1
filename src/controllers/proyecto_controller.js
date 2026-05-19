@@ -115,11 +115,14 @@ export const obtenerProyecto = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     }
 
-    const esAutor   = estudianteId && proyecto.autor._id.toString() === estudianteId.toString();
-    const esAdmin   = req.estudianteBDD?.rol === 'admin';
-    const esPublico = proyecto.estado === 'aprobado' && proyecto.publico;
+    const esAutor        = estudianteId && proyecto.autor._id.toString() === estudianteId.toString();
+    const esAdmin        = req.estudianteBDD?.rol === 'admin';
+    const esPublico      = proyecto.estado === 'aprobado' && proyecto.publico;
+    const esColaborador  = estudianteId && proyecto.colaboradores.some(c => c._id.toString() === estudianteId.toString());
 
-    if (!esPublico && !esAutor && !esAdmin) {
+    // Si es publico y aprobado cualquiera puede verlo (sin login inclusive)
+    // Si es privado/pendiente/rechazado solo autor, colaborador o admin
+    if (!esPublico && !esAutor && !esColaborador && !esAdmin) {
       return res.status(403).json({ success: false, message: 'No tienes permiso para ver este proyecto' });
     }
 
