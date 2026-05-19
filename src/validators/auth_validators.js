@@ -8,7 +8,7 @@ import Estudiante from '../models/Estudiante.js';
 const reglasPassword = (campo) =>
   body(campo)
     .notEmpty().withMessage('La contraseña es obligatoria')
-    .isLength({ min: 8, max: 12 }).withMessage('La contraseña debe tener entre 8 y 12 caracteres')
+    .isLength({ min: 8, max: 50 }).withMessage('La contraseña debe tener entre 8 y 12 caracteres')
     .matches(/[A-Z]/).withMessage('La contraseña debe contener al menos una letra mayúscula')
     .matches(/[a-z]/).withMessage('La contraseña debe contener al menos una letra minúscula')
     .matches(/[0-9]/).withMessage('La contraseña debe contener al menos un número')
