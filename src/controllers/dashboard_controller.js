@@ -51,7 +51,7 @@ export const getEstadisticasAdmin = async (req, res) => {
     ]);
 
     // ── 5) Top proyectos por vistas (incluye cantidad de likes) ──
-    const topProyectos = await Proyecto.find({ estado: 'publicado' })
+    const topProyectos = await Proyecto.find({ estado: 'aprobado', publico: true })
       .populate('autor', 'nombre apellido')
       .sort({ vistas: -1 })
       .limit(8)
@@ -59,7 +59,7 @@ export const getEstadisticasAdmin = async (req, res) => {
 
     // ── 6) Resumen de totales para las tarjetas superiores ──
     const totalProyectos   = await Proyecto.countDocuments();
-    const totalPublicados  = await Proyecto.countDocuments({ estado: 'publicado' });
+    const totalPublicados  = await Proyecto.countDocuments({ estado: 'aprobado', publico: true });
 
     const totalDonacionesAgg = await Donacion.aggregate([
       { $match: { estado: 'exitosa' } },
@@ -125,7 +125,7 @@ export const getEstadisticasUsuario = async (req, res) => {
         porEstado,
         resumen: {
           totalProyectos:   susProyectos.length,
-          totalPublicados:  susProyectos.filter(p => p.estado === 'publicado').length,
+          totalPublicados:  susProyectos.filter(p => p.estado === 'aprobado' && p.publico === true).length,
           totalVistas,
           totalLikes
         }
