@@ -264,20 +264,18 @@ const login = async (req, res) => {
 
         res.status(200).json({
             token,
-            usuario: {
-                _id,
-                nombre,
-                apellido,
-                correoInstitucional: usuarioBDD.email,
-                rol,
-                cedula,
-                fotoPerfil,
-                carrera,
-                semestre,
-                telefono,
-                descripcion,
-                github,
-            }
+            _id,
+            nombre,
+            apellido,
+            correoInstitucional: usuarioBDD.email,
+            rol,
+            cedula,
+            fotoPerfil,
+            carrera,
+            semestre,
+            telefono,
+            descripcion,
+            github,
         });
 
     } catch (error) {
