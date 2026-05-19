@@ -462,21 +462,22 @@ export const eliminarComentario = async (req, res) => {
 export const agregarColaborador = async (req, res) => {
   try {
     const { id } = req.params;
-    const { colaboradorId } = req.body;
+    const { email } = req.body;
     const usuarioId = req.estudianteBDD._id;
-    if (!colaboradorId) return res.status(400).json({ success: false, message: 'Proporciona el ID del colaborador' });
+    if (!email) return res.status(400).json({ success: false, message: 'Proporciona el correo del colaborador' });
     const proyecto = await Proyecto.findById(id);
     if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     if (proyecto.autor.toString() !== usuarioId.toString()) {
       return res.status(403).json({ success: false, message: 'Solo el autor puede gestionar colaboradores' });
     }
-    const colaborador = await Estudiante.findById(colaboradorId);
-    if (!colaborador) return res.status(404).json({ success: false, message: 'El usuario colaborador no existe' });
+    const colaborador = await Estudiante.findOne({ email: email.toLowerCase().trim() });
+    if (!colaborador) return res.status(404).json({ success: false, message: 'No existe ningún usuario con ese correo' });
     if (colaborador.rol !== 'estudiante') return res.status(400).json({ success: false, message: 'Solo se pueden agregar estudiantes como colaboradores' });
     if (!colaborador.confirmEmail) return res.status(400).json({ success: false, message: 'El colaborador no ha confirmado su correo electrónico' });
     if (colaborador.estado !== 'activo') return res.status(400).json({ success: false, message: 'El colaborador tiene la cuenta suspendida o inactiva' });
-    if (proyecto.colaboradores.includes(colaboradorId)) return res.status(400).json({ success: false, message: 'El colaborador ya está en el proyecto' });
-    proyecto.colaboradores.push(colaboradorId);
+    if (colaborador._id.toString() === usuarioId.toString()) return res.status(400).json({ success: false, message: 'No puedes agregarte a ti mismo como colaborador' });
+    if (proyecto.colaboradores.some(c => c.toString() === colaborador._id.toString())) return res.status(400).json({ success: false, message: 'El colaborador ya está en el proyecto' });
+    proyecto.colaboradores.push(colaborador._id);
     await proyecto.save();
     await proyecto.populate('colaboradores', 'nombre apellido email carrera');
     res.status(200).json({ success: true, message: 'Colaborador agregado', colaboradores: proyecto.colaboradores });
