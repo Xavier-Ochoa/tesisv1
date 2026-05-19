@@ -470,7 +470,9 @@ export const agregarColaborador = async (req, res) => {
     if (proyecto.autor.toString() !== usuarioId.toString()) {
       return res.status(403).json({ success: false, message: 'Solo el autor puede gestionar colaboradores' });
     }
-    const colaborador = await Estudiante.findOne({ email: email.toLowerCase().trim() });
+    const colaborador = await Estudiante
+      .findOne({ email: email.toLowerCase().trim() })
+      .select('+confirmEmail +estado +rol');
     if (!colaborador) return res.status(404).json({ success: false, message: 'No existe ningún usuario con ese correo' });
     if (colaborador.rol !== 'estudiante') return res.status(400).json({ success: false, message: 'Solo se pueden agregar estudiantes como colaboradores' });
     if (!colaborador.confirmEmail) return res.status(400).json({ success: false, message: 'El colaborador no ha confirmado su correo electrónico' });
