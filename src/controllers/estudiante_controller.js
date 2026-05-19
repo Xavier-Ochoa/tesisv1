@@ -87,7 +87,7 @@ export const obtenerEstudiante = async (req, res) => {
     const { id } = req.params;
 
     const estudiante = await Estudiante.findById(id)
-      .select('-password -token')
+      .select('-password -token +confirmEmail +estado')
       .lean();
 
     if (!estudiante) {
