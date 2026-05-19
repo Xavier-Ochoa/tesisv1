@@ -19,6 +19,8 @@ import {
   eliminarColaborador,
   listarColaboradores,
   eliminarImagenProyecto,
+  actualizarProyectoColaborador,
+  eliminarImagenColaborador,
 } from '../controllers/proyecto_controller.js';
 import { verificarTokenJWT, verificarDocente, verificarTokenOpcional } from '../middlewares/JWT.js';
 import { validarCrearProyecto, validarActualizarProyecto, validarAgregarComentario } from '../validators/proyecto_validators.js';
@@ -76,5 +78,11 @@ router.delete('/:id/comentarios/:comentarioId', verificarTokenJWT, eliminarComen
 router.get('/:id/colaboradores',                   verificarTokenJWT, listarColaboradores);
 router.post('/:id/colaboradores',                  verificarTokenJWT, verificarDocente, agregarColaborador);
 router.delete('/:id/colaboradores/:colaboradorId', verificarTokenJWT, verificarDocente, eliminarColaborador);
+
+// ===== EDICIÓN POR COLABORADOR =====
+// PUT  /proyectos/:id/colaborador       — editar descripcion, tecnologias, repositorio, enlaceDemo, tags, nivel (+ subir imágenes)
+// DELETE /proyectos/:id/colaborador/imagenes — eliminar una imagen por índice
+router.put('/:id/colaborador',           verificarTokenJWT, actualizarProyectoColaborador);
+router.delete('/:id/colaborador/imagenes', verificarTokenJWT, eliminarImagenColaborador);
 
 export default router;
