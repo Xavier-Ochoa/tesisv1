@@ -11,7 +11,7 @@ const donacionSchema = mongoose.Schema(
     monto: {
       type: Number,
       required: true,
-      min: 1,
+      min: 2,
     },
     mensaje: {
       type: String,
