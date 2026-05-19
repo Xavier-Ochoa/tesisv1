@@ -38,7 +38,7 @@ app.use(
       'https://examen-back-v1.vercel.app',
       process.env.URL_FRONTEND || "*"
     ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
 );
