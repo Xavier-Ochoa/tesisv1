@@ -556,3 +556,103 @@ export const eliminarImagenProyecto = async (req, res) => {
     res.status(500).json({ success: false, message: 'Error al eliminar la imagen', error: error.message });
   }
 };
+
+// ===== ACTUALIZAR PROYECTO — colaborador (campos restringidos) =====
+export const actualizarProyectoColaborador = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const estudianteId = req.estudianteBDD._id;
+    req.body = req.body ?? {};
+
+    const proyecto = await Proyecto.findById(id);
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+
+    const esColaborador = proyecto.colaboradores.some(c => c.toString() === estudianteId.toString());
+    if (!esColaborador) {
+      return res.status(403).json({ success: false, message: 'No eres colaborador de este proyecto' });
+    }
+
+    // Colaborador solo puede editar estos campos
+    const camposPermitidos = ['descripcion', 'tecnologias', 'repositorio', 'enlaceDemo', 'tags', 'nivel'];
+
+    const datosActualizacion = {};
+    for (const campo of camposPermitidos) {
+      if (req.body[campo] !== undefined) datosActualizacion[campo] = req.body[campo];
+    }
+
+    // Colaborador también puede agregar imágenes (máx 5 en total)
+    if (req.files?.imagenes) {
+      const archivos = Array.isArray(req.files.imagenes) ? req.files.imagenes : [req.files.imagenes];
+      const actualesCount = proyecto.imagenes?.length ?? 0;
+      if (actualesCount + archivos.length > 5) {
+        return res.status(400).json({
+          success: false,
+          message: `Máximo 5 imágenes. Ya tiene ${actualesCount} y estás intentando agregar ${archivos.length}.`,
+        });
+      }
+      const subidas = await Promise.all(archivos.map(a => subirImagenCloudinary(a.tempFilePath, 'Proyectos')));
+      datosActualizacion.imagenes   = [...(proyecto.imagenes ?? []),   ...subidas.map(s => s.secure_url)];
+      datosActualizacion.imagenesID = [...(proyecto.imagenesID ?? []), ...subidas.map(s => s.public_id)];
+    }
+
+    if (Object.keys(datosActualizacion).length === 0) {
+      return res.status(400).json({ success: false, message: 'No se enviaron campos válidos para actualizar' });
+    }
+
+    const proyectoActualizado = await Proyecto.findByIdAndUpdate(
+      id,
+      { $set: datosActualizacion },
+      { new: true, runValidators: true }
+    ).populate('autor', 'nombre apellido carrera email')
+     .populate('colaboradores', 'nombre apellido carrera');
+
+    res.status(200).json({ success: true, message: 'Proyecto actualizado por colaborador', data: proyectoActualizado });
+  } catch (error) {
+    console.error('Error al actualizar proyecto como colaborador:', error);
+    res.status(500).json({ success: false, message: 'Error al actualizar el proyecto', error: error.message });
+  }
+};
+
+// ===== ELIMINAR IMAGEN — colaborador =====
+export const eliminarImagenColaborador = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { indice } = req.body;
+    const estudianteId = req.estudianteBDD._id;
+
+    if (indice === undefined || indice === null) {
+      return res.status(400).json({ success: false, message: 'Debes indicar el índice de la imagen a eliminar (indice: 0-4)' });
+    }
+
+    const proyecto = await Proyecto.findById(id);
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+
+    const esColaborador = proyecto.colaboradores.some(c => c.toString() === estudianteId.toString());
+    if (!esColaborador) {
+      return res.status(403).json({ success: false, message: 'No eres colaborador de este proyecto' });
+    }
+
+    const idx = parseInt(indice);
+    if (isNaN(idx) || idx < 0 || idx >= proyecto.imagenes.length) {
+      return res.status(400).json({ success: false, message: `Índice inválido. El proyecto tiene ${proyecto.imagenes.length} imagen(es).` });
+    }
+
+    const publicId = proyecto.imagenesID[idx];
+    if (publicId) {
+      try { await eliminarImagenCloudinary(publicId); } catch (e) { console.error('Error al eliminar de Cloudinary:', e); }
+    }
+
+    proyecto.imagenes.splice(idx, 1);
+    proyecto.imagenesID.splice(idx, 1);
+    await proyecto.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Imagen eliminada correctamente',
+      data: { imagenes: proyecto.imagenes, total: proyecto.imagenes.length },
+    });
+  } catch (error) {
+    console.error('Error al eliminar imagen como colaborador:', error);
+    res.status(500).json({ success: false, message: 'Error al eliminar la imagen', error: error.message });
+  }
+};
