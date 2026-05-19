@@ -603,6 +603,12 @@ export const actualizarProyectoColaborador = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No se enviaron campos válidos para actualizar' });
     }
 
+    // Si el proyecto estaba aprobado o rechazado, vuelve a pendiente para nueva revisión.
+    // El motivoRechazo se conserva para historial; se borrará cuando el admin apruebe.
+    if (proyecto.estado === 'aprobado' || proyecto.estado === 'rechazado') {
+      datosActualizacion.estado = 'pendiente';
+    }
+
     const proyectoActualizado = await Proyecto.findByIdAndUpdate(
       id,
       { $set: datosActualizacion },
