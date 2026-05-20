@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { fileUploadMiddleware } from '../server.js';
 import {
   listarProyectos,
   misProyectos,
@@ -45,12 +46,14 @@ router.get('/:id',                   verificarTokenOpcional, obtenerProyecto);
 // ===== CRUD =====
 router.post('/',
   verificarTokenJWT,
+  fileUploadMiddleware,
   validarCrearProyecto,
   manejarErroresValidacion,
   crearProyecto
 );
 router.put('/:id',
   verificarTokenJWT,
+  fileUploadMiddleware,
   validarActualizarProyecto,
   manejarErroresValidacion,
   actualizarProyecto
