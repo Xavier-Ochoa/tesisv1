@@ -8,13 +8,6 @@ import estudianteRoutes from "./routes/estudiante_routes.js";
 import donacionRoutes from "./routes/donacion_routes.js";
 import dashboardRoutes from "./routes/dashboard_routes.js";
 import iaRoutes from "./routes/ia_routes.js";
-import fileUpload from "express-fileupload";
-export const fileUploadMiddleware = fileUpload({
-  useTempFiles: true,
-  tempFileDir: process.env.NODE_ENV === 'production' ? '/tmp' : './uploads',
-  createParentPath: true,
-  debug: false,
-});
 import { v2 as cloudinary } from 'cloudinary';
 
 // ===== CONFIGURACIÓN DE CLOUDINARY =====
@@ -30,7 +23,7 @@ const app = express();
 
 // Body parsers
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // necesario para form-data sin archivos
+app.use(express.urlencoded({ extended: true }));
 
 // CORS
 app.use(
@@ -49,8 +42,9 @@ app.use(
   })
 );
 
-// fileUpload NO se aplica globalmente para no interferir con headers JWT.
+// NOTA: fileUpload NO se registra aquí globalmente.
 // Se aplica por ruta en auth_routes.js y proyecto_routes.js
+// importando desde ./middlewares/upload.js (sin ciclo).
 
 // ===== RUTAS =====
 
@@ -58,25 +52,12 @@ app.get("/", (req, res) => {
   res.send("API de Proyectos ESFOT - EPN");
 });
 
-// Autenticación (registro con rol estudiante/docente, login, perfil)
 app.use("/api/auth", authRoutes);
-
-// Proyectos (estudiantes y docentes)
 app.use("/api/proyectos", proyectoRoutes);
-
-// Proyectos (solo administrador)
 app.use("/api/admin/proyectos", proyectoAdminRoutes);
-
-// Gestión de usuarios (solo administrador)
 app.use("/api/admin/estudiantes", estudianteRoutes);
-
-// Donaciones
 app.use("/api/donaciones", donacionRoutes);
-
-// Dashboard (estadísticas)
 app.use("/api/dashboard", dashboardRoutes);
-
-// IA (sugerencias de títulos con Hugging Face)
 app.use("/api/ia", iaRoutes);
 
 // ===== MANEJO DE ERRORES =====
