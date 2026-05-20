@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { fileUploadMiddleware } from '../server.js';
+import { fileUploadMiddleware } from '../middlewares/upload.js'; // ← sin ciclo
 import {
   listarProyectos,
   misProyectos,
@@ -46,14 +46,14 @@ router.get('/:id',                   verificarTokenOpcional, obtenerProyecto);
 // ===== CRUD =====
 router.post('/',
   verificarTokenJWT,
-  fileUploadMiddleware,
+  fileUploadMiddleware,             // solo rutas que suben imágenes
   validarCrearProyecto,
   manejarErroresValidacion,
   crearProyecto
 );
 router.put('/:id',
   verificarTokenJWT,
-  fileUploadMiddleware,
+  fileUploadMiddleware,             // solo rutas que suben imágenes
   validarActualizarProyecto,
   manejarErroresValidacion,
   actualizarProyecto
@@ -83,9 +83,7 @@ router.post('/:id/colaboradores',                  verificarTokenJWT, verificarD
 router.delete('/:id/colaboradores/:colaboradorId', verificarTokenJWT, verificarDocente, eliminarColaborador);
 
 // ===== EDICIÓN POR COLABORADOR =====
-// PUT  /proyectos/:id/colaborador       — editar descripcion, tecnologias, repositorio, enlaceDemo, tags, nivel (+ subir imágenes)
-// DELETE /proyectos/:id/colaborador/imagenes — eliminar una imagen por índice
-router.put('/:id/colaborador',           verificarTokenJWT, actualizarProyectoColaborador);
+router.put('/:id/colaborador',             verificarTokenJWT, actualizarProyectoColaborador);
 router.delete('/:id/colaborador/imagenes', verificarTokenJWT, eliminarImagenColaborador);
 
 export default router;
