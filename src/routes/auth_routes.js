@@ -22,7 +22,7 @@ import {
   validarNuevoPassword,
 } from '../validators/auth_validators.js';
 import { manejarErroresValidacion } from '../middlewares/validaciones.js';
-import { fileUploadMiddleware } from '../server.js';
+import { fileUploadMiddleware } from '../middlewares/upload.js'; // ← sin ciclo
 
 const router = Router();
 
@@ -75,7 +75,7 @@ router.get('/perfil', verificarTokenJWT, perfil);
 router.put(
   '/perfil',
   verificarTokenJWT,
-  fileUploadMiddleware,
+  fileUploadMiddleware,        // solo esta ruta necesita subir foto
   validarActualizarPerfil,
   manejarErroresValidacion,
   actualizarPerfil
