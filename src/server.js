@@ -9,6 +9,12 @@ import donacionRoutes from "./routes/donacion_routes.js";
 import dashboardRoutes from "./routes/dashboard_routes.js";
 import iaRoutes from "./routes/ia_routes.js";
 import fileUpload from "express-fileupload";
+export const fileUploadMiddleware = fileUpload({
+  useTempFiles: true,
+  tempFileDir: process.env.NODE_ENV === 'production' ? '/tmp' : './uploads',
+  createParentPath: true,
+  debug: false,
+});
 import { v2 as cloudinary } from 'cloudinary';
 
 // ===== CONFIGURACIÓN DE CLOUDINARY =====
@@ -43,15 +49,8 @@ app.use(
   })
 );
 
-// File upload para Cloudinary
-const uploadDir = process.env.NODE_ENV === 'production' ? '/tmp' : './uploads';
-
-app.use(fileUpload({
-  useTempFiles: true,
-  tempFileDir: uploadDir,
-  createParentPath: true, // BUG FIX: crea el directorio si no existe (evita que req.body quede undefined)
-  debug: false,
-}));
+// fileUpload NO se aplica globalmente para no interferir con headers JWT.
+// Se aplica por ruta en auth_routes.js y proyecto_routes.js
 
 // ===== RUTAS =====
 
