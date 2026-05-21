@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   comprobarTokenPasword,
   confirmarMail,
+  reenviarConfirmacion,
   crearNuevoPassword,
   recuperarPassword,
   registro,
@@ -48,6 +49,7 @@ router.post('/login', login);
 
 // Confirmar correo institucional
 router.get('/confirm/:token', confirmarMail);
+router.post('/reenviar-confirmacion', reenviarConfirmacion);
 
 // Recuperación de contraseña
 router.post('/recuperarpassword', recuperarPassword);
