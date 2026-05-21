@@ -493,9 +493,50 @@ const cambiarRol = async (req, res) => {
     }
 };
 
+
+// ===== REENVIAR TOKEN DE CONFIRMACIÓN DE EMAIL =====
+const reenviarConfirmacion = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ msg: 'Debes ingresar tu correo institucional' });
+
+        const usuarioBDD = await Estudiante
+            .findOne({ email: email.toLowerCase() })
+            .select('+token +confirmEmail +estado');
+
+        if (!usuarioBDD)
+            return res.status(404).json({ msg: 'No existe una cuenta con ese correo' });
+
+        if (usuarioBDD.confirmEmail)
+            return res.status(400).json({ msg: 'Este correo ya fue confirmado. Puedes iniciar sesión.' });
+
+        if (usuarioBDD.estado === 'inactivo')
+            return res.status(403).json({ msg: 'Tu cuenta ha sido suspendida. Contacta con el administrador.' });
+
+        // Generar nuevo token y guardarlo
+        const nuevoToken = usuarioBDD.createToken();
+        usuarioBDD.token = nuevoToken;
+        await usuarioBDD.save();
+
+        // Reenviar el correo de confirmación
+        try {
+            await sendMailToRegister(email, nuevoToken);
+        } catch (emailError) {
+            console.error('⚠️ No se pudo reenviar el correo:', emailError.message);
+            return res.status(500).json({ msg: 'No se pudo enviar el correo. Intenta más tarde.' });
+        }
+
+        res.status(200).json({ msg: 'Token de confirmación reenviado. Revisa tu correo institucional.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ msg: `❌ Error en el servidor - ${error}` });
+    }
+};
+
 export {
     registro,
     confirmarMail,
+    reenviarConfirmacion,
     recuperarPassword,
     comprobarTokenPasword,
     crearNuevoPassword,
