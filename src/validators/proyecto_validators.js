@@ -1,76 +1,59 @@
 import { body, param } from 'express-validator';
 
-// Función helper para convertir string a array
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const convertirStringAArray = (value) => {
   if (!value) return [];
   if (Array.isArray(value)) return value;
   if (typeof value === 'string') {
-    return value.split(',')
-      .map(item => item.trim())
-      .filter(item => item.length > 0);
+    return value.split(',').map(item => item.trim()).filter(item => item.length > 0);
   }
   return [];
 };
 
-// Función helper para validar tecnologías/tags
 const validarElementosArray = (elementos, campo) => {
   if (!Array.isArray(elementos)) {
     throw new Error(`Las ${campo} deben ser un array o string separado por comas`);
   }
   if (elementos.length > 0) {
-    const todosValidos = elementos.every(item =>
-      typeof item === 'string' && item.trim().length > 0
-    );
-    if (!todosValidos) {
-      throw new Error(`Todas las ${campo} deben ser texto válido`);
-    }
+    const todosValidos = elementos.every(item => typeof item === 'string' && item.trim().length > 0);
+    if (!todosValidos) throw new Error(`Todas las ${campo} deben ser texto válido`);
   }
   return true;
 };
 
-// Helper reutilizable para validar múltiples imágenes (campo "imagenes", máx 5)
 const validarImagenesOpcionales = body().custom((value, { req }) => {
-  if (!req.files?.imagenes) return true; // campo opcional
-
-  const archivos = Array.isArray(req.files.imagenes)
-    ? req.files.imagenes
-    : [req.files.imagenes];
-
-  if (archivos.length > 5) {
-    throw new Error('Solo se permiten máximo 5 imágenes por proyecto');
-  }
-
+  if (!req.files?.imagenes) return true;
+  const archivos = Array.isArray(req.files.imagenes) ? req.files.imagenes : [req.files.imagenes];
+  if (archivos.length > 5) throw new Error('Solo se permiten máximo 5 imágenes por proyecto');
   const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-  const invalidos = archivos.filter(f => !tiposPermitidos.includes(f.mimetype));
-  if (invalidos.length > 0) {
+  if (archivos.some(f => !tiposPermitidos.includes(f.mimetype))) {
     throw new Error('Solo se permiten imágenes en formato JPG, PNG o WEBP');
   }
-
-  const maxSize = 5 * 1024 * 1024; // 5 MB
-  const grandes = archivos.filter(f => f.size > maxSize);
-  if (grandes.length > 0) {
+  if (archivos.some(f => f.size > 5 * 1024 * 1024)) {
     throw new Error('Cada imagen no debe superar los 5 MB');
   }
-
   return true;
 });
 
-// Helper reutilizable para validar el campo publico
-const validarCampoPublico = body('publico')
+// Valida tipoProyecto: 'publico' o 'privado'
+const validarTipoProyecto = body('tipoProyecto')
   .optional()
-  .custom((value) => {
-    if (value === undefined || value === null || value === '') return true;
-    if (typeof value === 'boolean') return true;
-    if (typeof value === 'string') {
-      const lowerValue = value.toLowerCase();
-      if (lowerValue === 'true' || lowerValue === 'false') return true;
-    }
-    throw new Error('El campo público debe ser verdadero o falso');
-  });
+  .isIn(['publico', 'privado'])
+  .withMessage('El tipo de proyecto debe ser "publico" o "privado"');
 
-/**
- * Validaciones para crear un proyecto
- */
+// ── Campos de URL reutilizables ───────────────────────────────────────────────
+const validarURL = (campo) =>
+  body(campo)
+    .optional()
+    .trim()
+    .custom((value) => {
+      if (value && value.length > 0 && !/^https?:\/\/.+/i.test(value)) {
+        throw new Error(`El campo ${campo} debe ser una URL válida`);
+      }
+      return true;
+    });
+
+// ── CREAR PROYECTO ────────────────────────────────────────────────────────────
 export const validarCrearProyecto = [
   body('titulo')
     .trim()
@@ -100,85 +83,50 @@ export const validarCrearProyecto = [
       'Redes y Telecomunicaciones',
       'Procesamiento de Alimentos',
       'Procesamiento industrial de la madera',
-    ]).withMessage('La carrera no es válida. Las opciones permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento industrial de la madera'),
+    ]).withMessage('La carrera no es válida'),
 
-  body('asignatura')
+  body('lineaInvestigacion')
     .optional()
     .trim()
-    .isLength({ max: 200 }).withMessage('La asignatura no puede exceder 200 caracteres'),
+    .isLength({ max: 200 }).withMessage('La línea de investigación no puede exceder 200 caracteres'),
 
   body('fechaFin')
     .optional()
     .isISO8601().withMessage('La fecha de fin debe tener formato válido (YYYY-MM-DD)')
     .custom((fechaFin, { req }) => {
-      if (req.body.fechaInicio && fechaFin) {
-        if (new Date(fechaFin) < new Date(req.body.fechaInicio)) {
-          throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
-        }
+      if (req.body.fechaInicio && fechaFin && new Date(fechaFin) < new Date(req.body.fechaInicio)) {
+        throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
       }
       return true;
     }),
 
   body('tecnologias')
     .optional()
-    .customSanitizer((value) => convertirStringAArray(value))
-    .custom((tecnologias) => validarElementosArray(tecnologias, 'tecnologías')),
+    .customSanitizer(convertirStringAArray)
+    .custom((v) => validarElementosArray(v, 'tecnologías')),
 
-  body('repositorio')
-    .optional()
-    .trim()
-    .custom((value) => {
-      if (value && value.length > 0) {
-        if (!/^https?:\/\/.+/i.test(value)) {
-          throw new Error('El repositorio debe ser una URL válida');
-        }
-      }
-      return true;
-    }),
-
-  body('enlaceDemo')
-    .optional()
-    .trim()
-    .custom((value) => {
-      if (value && value.length > 0) {
-        if (!/^https?:\/\/.+/i.test(value)) {
-          throw new Error('El enlace demo debe ser una URL válida');
-        }
-      }
-      return true;
-    }),
+  validarURL('repositorio'),
+  validarURL('enlaceDemo'),
 
   body('tags')
     .optional()
-    .customSanitizer((value) => convertirStringAArray(value))
-    .custom((tags) => validarElementosArray(tags, 'tags')),
+    .customSanitizer(convertirStringAArray)
+    .custom((v) => validarElementosArray(v, 'tags')),
 
-  body('nivel')
-    .optional()
-    .isInt({ min: 0, max: 5 }).withMessage('El nivel debe ser un número entre 0 y 5'),
-
-  // ISSUE 1 FIX: usando el helper reutilizable
-  validarCampoPublico,
-
-  // Imágenes opcionales (máx 5, campo "imagenes")
+  validarTipoProyecto,
   validarImagenesOpcionales,
 ];
 
-/**
- * Validaciones para actualizar un proyecto
- */
+// ── ACTUALIZAR PROYECTO (autor o colaborador) ─────────────────────────────────
 export const validarActualizarProyecto = [
-  param('id')
-    .isMongoId().withMessage('ID de proyecto inválido'),
+  param('id').isMongoId().withMessage('ID de proyecto inválido'),
 
   body('titulo')
-    .optional()
-    .trim()
+    .optional().trim()
     .isLength({ min: 5, max: 200 }).withMessage('El título debe tener entre 5 y 200 caracteres'),
 
   body('descripcion')
-    .optional()
-    .trim()
+    .optional().trim()
     .isLength({ min: 20, max: 2000 }).withMessage('La descripción debe tener entre 20 y 2000 caracteres'),
 
   body('categoria')
@@ -186,8 +134,7 @@ export const validarActualizarProyecto = [
     .isIn(['academico', 'extracurricular']).withMessage('La categoría debe ser "academico" o "extracurricular"'),
 
   body('carrera')
-    .optional()
-    .trim()
+    .optional().trim()
     .isIn([
       'Agua y Saneamiento Ambiental',
       'Desarrollo de Software',
@@ -195,100 +142,54 @@ export const validarActualizarProyecto = [
       'Redes y Telecomunicaciones',
       'Procesamiento de Alimentos',
       'Procesamiento industrial de la madera',
-    ]).withMessage('La carrera no es válida. Las opciones permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento industrial de la madera'),
+    ]).withMessage('La carrera no es válida'),
 
-  body('nivel')
-    .optional()
-    .isInt({ min: 0, max: 5 }).withMessage('El nivel debe ser un número entre 0 y 5'),
+  body('lineaInvestigacion')
+    .optional().trim()
+    .isLength({ max: 200 }).withMessage('La línea de investigación no puede exceder 200 caracteres'),
 
-  body('fechaInicio')
-    .optional()
-    .isISO8601().withMessage('La fecha de inicio debe tener formato válido'),
-
-  body('fechaFin')
-    .optional()
-    .isISO8601().withMessage('La fecha de fin debe tener formato válido'),
+  body('fechaInicio').optional().isISO8601().withMessage('La fecha de inicio debe tener formato válido'),
+  body('fechaFin').optional().isISO8601().withMessage('La fecha de fin debe tener formato válido'),
 
   body('tecnologias')
     .optional()
-    .customSanitizer((value) => convertirStringAArray(value))
-    .custom((tecnologias) => validarElementosArray(tecnologias, 'tecnologías')),
+    .customSanitizer(convertirStringAArray)
+    .custom((v) => validarElementosArray(v, 'tecnologías')),
 
-  body('repositorio')
+  validarURL('repositorio'),
+  validarURL('enlaceDemo'),
+
+  body('tags')
     .optional()
-    .trim()
-    .custom((value) => {
-      if (value && value.length > 0) {
-        if (!/^https?:\/\/.+/i.test(value)) {
-          throw new Error('El repositorio debe ser una URL válida');
-        }
-      }
-      return true;
-    }),
+    .customSanitizer(convertirStringAArray)
+    .custom((v) => validarElementosArray(v, 'tags')),
 
-  body('enlaceDemo')
-    .optional()
-    .trim()
-    .custom((value) => {
-      if (value && value.length > 0) {
-        if (!/^https?:\/\/.+/i.test(value)) {
-          throw new Error('El enlace demo debe ser una URL válida');
-        }
-      }
-      return true;
-    }),
-
-  // ISSUE 1 FIX: publico ahora también se valida en el update
-  validarCampoPublico,
-
-  // Imágenes opcionales al actualizar (se agregan a las existentes, máx 5 en total)
+  validarTipoProyecto,
   validarImagenesOpcionales,
 ];
 
-/**
- * Validaciones para agregar comentario
- */
+// ── COMENTARIO ────────────────────────────────────────────────────────────────
 export const validarAgregarComentario = [
-  param('id')
-    .isMongoId().withMessage('ID de proyecto inválido'),
-
+  param('id').isMongoId().withMessage('ID de proyecto inválido'),
   body('texto')
     .trim()
     .notEmpty().withMessage('El comentario no puede estar vacío')
     .isLength({ min: 3, max: 500 }).withMessage('El comentario debe tener entre 3 y 500 caracteres'),
 ];
 
-/**
- * Validaciones para subir imágenes del proyecto
- */
+// ── IMÁGENES ──────────────────────────────────────────────────────────────────
 export const validarSubirImagenesProyecto = [
-  param('id')
-    .isMongoId().withMessage('ID de proyecto inválido'),
-
-  body()
-    .custom((value, { req }) => {
-      if (!req.files || !req.files.imagenes) {
-        throw new Error('Debe enviar al menos una imagen');
-      }
-
-      if (!Array.isArray(req.files.imagenes)) {
-        req.files.imagenes = [req.files.imagenes];
-      }
-
-      const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
-      const archivosInvalidos = req.files.imagenes.filter(file =>
-        !tiposPermitidos.includes(file.mimetype)
-      );
-      if (archivosInvalidos.length > 0) {
-        throw new Error('Solo se permiten imágenes JPG, PNG o WEBP');
-      }
-
-      const maxSize = 5 * 1024 * 1024;
-      const archivosGrandes = req.files.imagenes.filter(file => file.size > maxSize);
-      if (archivosGrandes.length > 0) {
-        throw new Error('Las imágenes no deben superar los 5MB cada una');
-      }
-
-      return true;
-    }),
+  param('id').isMongoId().withMessage('ID de proyecto inválido'),
+  body().custom((value, { req }) => {
+    if (!req.files?.imagenes) throw new Error('Debe enviar al menos una imagen');
+    if (!Array.isArray(req.files.imagenes)) req.files.imagenes = [req.files.imagenes];
+    const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (req.files.imagenes.some(f => !tiposPermitidos.includes(f.mimetype))) {
+      throw new Error('Solo se permiten imágenes JPG, PNG o WEBP');
+    }
+    if (req.files.imagenes.some(f => f.size > 5 * 1024 * 1024)) {
+      throw new Error('Las imágenes no deben superar los 5 MB cada una');
+    }
+    return true;
+  }),
 ];
