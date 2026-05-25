@@ -2,18 +2,46 @@ import { Schema, model } from 'mongoose';
 
 /**
  * Modelo de Proyecto Académico/Extracurricular para ESFOT
+ *
+ * Versionado: cada versión es un documento separado.
+ * Todos los documentos de un mismo proyecto comparten `proyecto_id`.
+ * Solo el documento con `esUltimaVersion: true` puede modificarse.
  */
 
 const proyectoSchema = new Schema(
   {
-    // Información básica del proyecto
+    // ── Código único generado al crear la primera versión ───────────────────
+    // Formato: PREFIJO-AÑO-SECUENCIAL  →  DSW-2026-001
+    // Se copia igual en todas las versiones del mismo proyecto.
+    proyecto_id: {
+      type: String,
+      trim: true,
+      index: true,
+    },
+
+    // ── Versión del documento ────────────────────────────────────────────────
+    // '001', '002', '003' …
+    version: {
+      type: String,
+      default: '001',
+    },
+
+    // ── Marca de última versión ──────────────────────────────────────────────
+    // Solo el documento con esUltimaVersion=true puede editarse.
+    esUltimaVersion: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+
+    // ── Información básica ───────────────────────────────────────────────────
     titulo: {
       type: String,
       required: [true, 'El título del proyecto es obligatorio'],
       trim: true,
       maxlength: [200, 'El título no puede exceder 200 caracteres'],
     },
-    
+
     descripcion: {
       type: String,
       required: [true, 'La descripción es obligatoria'],
@@ -21,36 +49,36 @@ const proyectoSchema = new Schema(
       maxlength: [2000, 'La descripción no puede exceder 2000 caracteres'],
     },
 
-    // Tipo de proyecto
+    // ── Tipo de proyecto ─────────────────────────────────────────────────────
     categoria: {
       type: String,
       required: true,
       enum: {
         values: ['academico', 'extracurricular'],
-        message: '{VALUE} no es una categoría válida'
+        message: '{VALUE} no es una categoría válida',
       },
     },
 
-    // Para proyectos académicos - asignatura relacionada
-    asignatura: {
+    // ── Línea de investigación ───────────────────────────────────────────────
+    lineaInvestigacion: {
       type: String,
       trim: true,
     },
 
-    // Estudiante autor principal
+    // ── Autor principal ──────────────────────────────────────────────────────
     autor: {
       type: Schema.Types.ObjectId,
       ref: 'Usuario',
       required: [true, 'El autor del proyecto es obligatorio'],
     },
 
-    // Colaboradores del proyecto
+    // ── Colaboradores ────────────────────────────────────────────────────────
     colaboradores: [{
       type: Schema.Types.ObjectId,
       ref: 'Usuario',
     }],
 
-    // Fechas del proyecto
+    // ── Fechas ───────────────────────────────────────────────────────────────
     fechaInicio: {
       type: Date,
       required: [true, 'La fecha de inicio es obligatoria'],
@@ -60,43 +88,61 @@ const proyectoSchema = new Schema(
       type: Date,
     },
 
-    // Estado del proyecto
+    // ── Estado de revisión ───────────────────────────────────────────────────
     estado: {
       type: String,
       enum: ['pendiente', 'aprobado', 'rechazado'],
       default: 'pendiente',
     },
 
-    // Motivo de rechazo (solo cuando estado === 'rechazado')
     motivoRechazo: {
       type: String,
       default: '',
     },
 
-    // Recursos multimedia - CAMBIO: estructura simplificada con publicId
+    // ── Tipo de proyecto: público o privado ──────────────────────────────────
+    // publico  → visible para el admin y (si aprobado) en la landing page
+    // privado  → invisible para el admin; solo el autor/colaboradores lo ven
+    // Default: 'privado'
+    tipoProyecto: {
+      type: String,
+      enum: {
+        values: ['publico', 'privado'],
+        message: '{VALUE} no es un tipo de proyecto válido. Usa "publico" o "privado"',
+      },
+      default: 'privado',
+    },
+
+    // ── Borrado lógico ───────────────────────────────────────────────────────
+    // false = desactivado (no aparece en ninguna consulta normal)
+    activo: {
+      type: Boolean,
+      default: true,
+      index: true,
+    },
+
+    // ── Recursos multimedia ──────────────────────────────────────────────────
     imagenes: [{
-      type: String, // URL de Cloudinary
-    }],
-    
-    // IDs públicos de Cloudinary para poder eliminar las imágenes
-    imagenesID: [{
-      type: String, // public_id de Cloudinary
+      type: String,
     }],
 
-    // Documentos relacionados
+    imagenesID: [{
+      type: String,
+    }],
+
     documentos: [{
       nombre: String,
       url: String,
       tipo: String,
     }],
 
-    // Tecnologías utilizadas
+    // ── Tecnologías ──────────────────────────────────────────────────────────
     tecnologias: [{
       type: String,
       trim: true,
     }],
 
-    // Enlaces externos
+    // ── Enlaces externos ─────────────────────────────────────────────────────
     repositorio: {
       type: String,
       trim: true,
@@ -107,14 +153,14 @@ const proyectoSchema = new Schema(
       trim: true,
     },
 
-    // Tags para búsqueda
+    // ── Tags ─────────────────────────────────────────────────────────────────
     tags: [{
       type: String,
       trim: true,
       lowercase: true,
     }],
 
-    // Carrera
+    // ── Carrera ──────────────────────────────────────────────────────────────
     carrera: {
       type: String,
       required: true,
@@ -127,35 +173,21 @@ const proyectoSchema = new Schema(
           'Procesamiento de Alimentos',
           'Procesamiento industrial de la madera',
         ],
-        message: 'La carrera "{VALUE}" no es válida. Las carreras permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento industrial de la madera',
+        message: 'La carrera "{VALUE}" no es válida.',
       },
     },
 
-    nivel: {
-      type: Number,
-      min: [0, 'El nivel debe ser al menos 0'],
-      max: [5, 'El nivel no puede ser mayor a 5'],
-    },
-
-    // Visibilidad
-    publico: {
-      type: Boolean,
-      default: true,
-    },
-
-    // Estadísticas
+    // ── Estadísticas ─────────────────────────────────────────────────────────
     vistas: {
       type: Number,
       default: 0,
     },
 
-    // Likes
     likes: [{
       type: Schema.Types.ObjectId,
       ref: 'Usuario',
     }],
 
-    // Comentarios
     comentarios: [{
       estudiante: {
         type: Schema.Types.ObjectId,
@@ -173,20 +205,21 @@ const proyectoSchema = new Schema(
   }
 );
 
-// Índices para búsquedas
+// ── Índices ───────────────────────────────────────────────────────────────────
 proyectoSchema.index({ titulo: 'text', descripcion: 'text', tags: 'text' });
 proyectoSchema.index({ categoria: 1, estado: 1 });
 proyectoSchema.index({ autor: 1 });
 proyectoSchema.index({ carrera: 1 });
+proyectoSchema.index({ proyecto_id: 1, version: 1 }, { unique: true, sparse: true });
+proyectoSchema.index({ proyecto_id: 1, esUltimaVersion: 1 });
 
-// Método para incrementar vistas
-proyectoSchema.methods.incrementarVistas = async function() {
+// ── Métodos ───────────────────────────────────────────────────────────────────
+proyectoSchema.methods.incrementarVistas = async function () {
   this.vistas += 1;
   return await this.save();
 };
 
-// Método para agregar like
-proyectoSchema.methods.agregarLike = async function(estudianteId) {
+proyectoSchema.methods.agregarLike = async function (estudianteId) {
   if (!this.likes.includes(estudianteId)) {
     this.likes.push(estudianteId);
     return await this.save();
@@ -194,11 +227,9 @@ proyectoSchema.methods.agregarLike = async function(estudianteId) {
   return this;
 };
 
-// Método para quitar like
-proyectoSchema.methods.quitarLike = async function(estudianteId) {
+proyectoSchema.methods.quitarLike = async function (estudianteId) {
   this.likes = this.likes.filter(id => id.toString() !== estudianteId.toString());
   return await this.save();
 };
 
-// IMPORTANTE: Export default al final
 export default model('Proyecto', proyectoSchema);
