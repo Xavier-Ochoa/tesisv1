@@ -1,0 +1,69 @@
+import Proyecto from '../models/Proyecto.js';
+
+/**
+ * Prefijos por carrera
+ */
+const PREFIJOS_CARRERA = {
+  'Desarrollo de Software':            'DSW',
+  'Redes y Telecomunicaciones':        'RED',
+  'Electromecánica':                   'ELM',
+  'Agua y Saneamiento Ambiental':      'ASA',
+  'Procesamiento de Alimentos':        'PAL',
+  'Procesamiento industrial de la madera': 'PIM',
+};
+
+/**
+ * Genera el siguiente proyecto_id.
+ *
+ * Formato: PREFIJO-AÑO-SECUENCIAL  →  DSW-2026-001
+ *
+ * El contador es GLOBAL (todas las carreras juntas) y se reinicia cada año.
+ * Se busca el último proyecto_id del año en curso y se incrementa en 1.
+ *
+ * @param {string} carrera  Nombre completo de la carrera
+ * @returns {Promise<string>}
+ */
+export const generarProyectoId = async (carrera) => {
+  const prefijo = PREFIJOS_CARRERA[carrera];
+  if (!prefijo) throw new Error(`Carrera no reconocida para generar proyecto_id: ${carrera}`);
+
+  const anio = new Date().getFullYear().toString(); // '2026'
+
+  // Buscar todos los proyecto_id del año actual (sin importar carrera)
+  // para obtener el máximo secuencial global.
+  // proyecto_id tiene el formato XXX-YYYY-NNN
+  const regex = new RegExp(`^[A-Z]{3}-${anio}-\\d+$`);
+
+  const ultimo = await Proyecto.findOne(
+    { proyecto_id: { $regex: regex } },
+    { proyecto_id: 1 },
+  ).sort({ proyecto_id: -1 }).lean();
+
+  let siguiente = 1;
+  if (ultimo?.proyecto_id) {
+    const partes = ultimo.proyecto_id.split('-');
+    const numeroActual = parseInt(partes[2], 10);
+    if (!isNaN(numeroActual)) siguiente = numeroActual + 1;
+  }
+
+  const secuencial = String(siguiente).padStart(3, '0'); // '001', '002' …
+  return `${prefijo}-${anio}-${secuencial}`;
+};
+
+/**
+ * Dado el proyecto_id de la versión anterior, calcula la nueva versión.
+ * Busca la versión más alta registrada con ese proyecto_id y suma 1.
+ *
+ * @param {string} proyectoId
+ * @returns {Promise<string>}  '002', '003' …
+ */
+export const siguienteVersion = async (proyectoId) => {
+  const ultimo = await Proyecto.findOne(
+    { proyecto_id: proyectoId },
+    { version: 1 },
+  ).sort({ version: -1 }).lean();
+
+  if (!ultimo?.version) return '001';
+  const num = parseInt(ultimo.version, 10);
+  return String(isNaN(num) ? 1 : num + 1).padStart(3, '0');
+};
