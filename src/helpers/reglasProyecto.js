@@ -44,7 +44,18 @@ export const validarEditable = (proyecto) => {
  */
 export const rolesEnProyecto = (proyecto, usuarioId) => {
   const id = usuarioId.toString();
-  const esAutor = proyecto.autor.toString() === id;
-  const esColaborador = proyecto.colaboradores.some(c => c.toString() === id);
+
+  // Maneja tanto ObjectId crudo como objeto populado { _id, nombre, ... }
+  const autorId = proyecto.autor?._id
+    ? proyecto.autor._id.toString()
+    : proyecto.autor.toString();
+
+  const esAutor = autorId === id;
+
+  const esColaborador = proyecto.colaboradores.some(c => {
+    const colId = c?._id ? c._id.toString() : c.toString();
+    return colId === id;
+  });
+
   return { esAutor, esColaborador };
 };
