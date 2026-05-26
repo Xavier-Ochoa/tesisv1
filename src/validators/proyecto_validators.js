@@ -82,7 +82,7 @@ export const validarCrearProyecto = [
       'Electromecánica',
       'Redes y Telecomunicaciones',
       'Procesamiento de Alimentos',
-      'Procesamiento industrial de la madera',
+      'Procesamiento Industrial de la madera',
     ]).withMessage('La carrera no es válida'),
 
   body('lineaInvestigacion')
@@ -141,7 +141,7 @@ export const validarActualizarProyecto = [
       'Electromecánica',
       'Redes y Telecomunicaciones',
       'Procesamiento de Alimentos',
-      'Procesamiento industrial de la madera',
+      'Procesamiento Industrial de la madera',
     ]).withMessage('La carrera no es válida'),
 
   body('lineaInvestigacion')
