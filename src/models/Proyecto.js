@@ -171,7 +171,7 @@ const proyectoSchema = new Schema(
           'Electromecánica',
           'Redes y Telecomunicaciones',
           'Procesamiento de Alimentos',
-          'Procesamiento Industrial de la madera',
+          'Procesamiento Industrial de la Madera',
         ],
         message: 'La carrera "{VALUE}" no es válida.',
       },
