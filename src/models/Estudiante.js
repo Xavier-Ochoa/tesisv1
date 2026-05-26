@@ -121,7 +121,7 @@ const usuarioSchema = new Schema(
           'Electromecánica',
           'Redes y Telecomunicaciones',
           'Procesamiento de Alimentos',
-          'Procesamiento industrial de la madera',
+          'Procesamiento Industrial de la Madera',
         ],
         message: 'La carrera "{VALUE}" no es válida. Las carreras permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento Industrial de la madera',
       },
