@@ -2,7 +2,7 @@ import Proyecto from '../models/Proyecto.js';
 import Estudiante from '../models/Estudiante.js';
 import { subirImagenCloudinary, eliminarImagenCloudinary } from '../helpers/uploadCloudinary.js';
 import { generarProyectoId, siguienteVersion } from '../helpers/generarProyectoId.js';
-import { validarEditable, rolesEnProyecto } from '../helpers/reglasProyecto.js';
+import { validarEditable, validarVersionable, rolesEnProyecto } from '../helpers/reglasProyecto.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LANDING — solo aprobado + publico + activo
@@ -326,13 +326,13 @@ export const crearNuevaVersion = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     }
 
-    const { esAutor, esColaborador } = rolesEnProyecto(versionActual, usuarioId);
-    if (!esAutor && !esColaborador) {
-      return res.status(403).json({ success: false, message: 'No tienes permiso para versionar este proyecto' });
+    const { esAutor } = rolesEnProyecto(versionActual, usuarioId);
+    if (!esAutor) {
+      return res.status(403).json({ success: false, message: 'Solo el autor del proyecto puede crear nuevas versiones' });
     }
 
-    const errorRegla = validarEditable(versionActual);
-    if (errorRegla) return res.status(403).json({ success: false, message: errorRegla });
+    const errorVersionable = validarVersionable(versionActual);
+    if (errorVersionable) return res.status(403).json({ success: false, message: errorVersionable });
 
     // Un proyecto público no puede cambiarse a privado
     if (
