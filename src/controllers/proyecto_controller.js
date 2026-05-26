@@ -440,30 +440,28 @@ export const eliminarProyecto = async (req, res) => {
     const proyecto = await Proyecto.findById(id);
     if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
 
+    // Solo el autor puede eliminar
     if (proyecto.autor.toString() !== estudianteId.toString()) {
       return res.status(403).json({ success: false, message: 'No tienes permiso para eliminar este proyecto' });
     }
 
-    if (proyecto.tipoProyecto === 'privado') {
-      // Borrado físico: eliminar todas las versiones e imágenes de Cloudinary
-      const todasVersiones = await Proyecto.find({ proyecto_id: proyecto.proyecto_id });
-      for (const v of todasVersiones) {
-        if (v.imagenesID?.length > 0) {
-          for (const pid of v.imagenesID) {
-            try { await eliminarImagenCloudinary(pid); } catch (e) { console.error(e); }
-          }
-        }
-        await Proyecto.findByIdAndDelete(v._id);
-      }
-      return res.status(200).json({ success: true, message: 'Proyecto eliminado permanentemente' });
+    // Proyectos públicos no pueden ser eliminados por el estudiante/docente
+    // Solo el admin puede desactivarlos desde su propio módulo
+    if (proyecto.tipoProyecto === 'publico') {
+      return res.status(403).json({ success: false, message: 'Los proyectos públicos no pueden ser eliminados por el autor. Contacta al administrador si necesitas desactivarlo.' });
     }
 
-    // Borrado lógico: desactivar todas las versiones
-    await Proyecto.updateMany(
-      { proyecto_id: proyecto.proyecto_id },
-      { $set: { activo: false } }
-    );
-    res.status(200).json({ success: true, message: 'Proyecto desactivado (borrado lógico)' });
+    // Borrado físico: solo proyectos privados
+    const todasVersiones = await Proyecto.find({ proyecto_id: proyecto.proyecto_id });
+    for (const v of todasVersiones) {
+      if (v.imagenesID?.length > 0) {
+        for (const pid of v.imagenesID) {
+          try { await eliminarImagenCloudinary(pid); } catch (e) { console.error(e); }
+        }
+      }
+      await Proyecto.findByIdAndDelete(v._id);
+    }
+    return res.status(200).json({ success: true, message: 'Proyecto eliminado permanentemente' });
   } catch (error) {
     console.error('Error al eliminar proyecto:', error);
     res.status(500).json({ success: false, message: 'Error al eliminar el proyecto', error: error.message });
