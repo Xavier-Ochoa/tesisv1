@@ -97,6 +97,8 @@ router.post('/:id/comentarios',
 router.delete('/:id/comentarios/:comentarioId', verificarTokenJWT, eliminarComentario);
 
 // ── COLABORADORES ─────────────────────────────────────────────────────────────
+router.get('/donde-colaboro',           verificarTokenJWT, dondeColabora);
+router.get('/mis-proyectos-con-colaboradores', verificarTokenJWT, misProyectosConColaboradores);
 router.get('/:id/colaboradores',                   verificarTokenJWT, listarColaboradores);
 router.post('/:id/colaboradores',                  verificarTokenJWT, verificarDocente, agregarColaborador);
 router.delete('/:id/colaboradores/:colaboradorId', verificarTokenJWT, verificarDocente, eliminarColaborador);
