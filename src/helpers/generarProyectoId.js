@@ -9,7 +9,7 @@ const PREFIJOS_CARRERA = {
   'Electromecánica':                   'ELM',
   'Agua y Saneamiento Ambiental':      'ASA',
   'Procesamiento de Alimentos':        'PAL',
-  'Procesamiento Industrial de la madera': 'PIM',
+  'Procesamiento Industrial de la Madera': 'PIM',
 };
 
 /**
