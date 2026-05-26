@@ -24,8 +24,6 @@ import {
   eliminarImagenProyecto,
   actualizarProyectoColaborador,
   eliminarImagenColaborador,
-  dondeColabora,
-  misProyectosConColaboradores,
 } from '../controllers/proyecto_controller.js';
 import { verificarTokenJWT, verificarDocente, verificarTokenOpcional } from '../middlewares/JWT.js';
 import {
@@ -49,6 +47,8 @@ router.get('/estudiante/:id',        listarProyectosPorEstudiante);
 router.get('/usuario/mis-proyectos', verificarTokenJWT, misProyectos);
 
 // ── DETALLE ───────────────────────────────────────────────────────────────────
+router.get('/donde-colaboro',                    verificarTokenJWT, dondeColabora);
+router.get('/mis-proyectos-con-colaboradores', verificarTokenJWT, misProyectosConColaboradores);
 router.get('/:id',                   verificarTokenOpcional, obtenerProyecto);
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
@@ -99,8 +99,6 @@ router.post('/:id/comentarios',
 router.delete('/:id/comentarios/:comentarioId', verificarTokenJWT, eliminarComentario);
 
 // ── COLABORADORES ─────────────────────────────────────────────────────────────
-router.get('/donde-colaboro',           verificarTokenJWT, dondeColabora);
-router.get('/mis-proyectos-con-colaboradores', verificarTokenJWT, misProyectosConColaboradores);
 router.get('/:id/colaboradores',                   verificarTokenJWT, listarColaboradores);
 router.post('/:id/colaboradores',                  verificarTokenJWT, verificarDocente, agregarColaborador);
 router.delete('/:id/colaboradores/:colaboradorId', verificarTokenJWT, verificarDocente, eliminarColaborador);
