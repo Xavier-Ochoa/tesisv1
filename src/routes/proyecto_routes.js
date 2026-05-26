@@ -24,6 +24,8 @@ import {
   eliminarImagenProyecto,
   actualizarProyectoColaborador,
   eliminarImagenColaborador,
+  dondeColabora,
+  misProyectosConColaboradores,
 } from '../controllers/proyecto_controller.js';
 import { verificarTokenJWT, verificarDocente, verificarTokenOpcional } from '../middlewares/JWT.js';
 import {
