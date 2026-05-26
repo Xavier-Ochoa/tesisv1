@@ -102,8 +102,8 @@ export const validarActualizarPerfil = [
       'Electromecánica',
       'Redes y Telecomunicaciones',
       'Procesamiento de Alimentos',
-      'Procesamiento Industrial de la madera',
-    ]).withMessage('La carrera no es válida. Las opciones permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento Industrial de la madera'),
+      'Procesamiento Industrial de la Madera',
+    ]).withMessage('La carrera no es válida. Las opciones permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento Industrial de la Madera'),
 
   body('semestre')
     .optional()
