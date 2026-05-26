@@ -128,12 +128,13 @@ export const historialVersiones = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     }
 
-    // Verificar acceso: autor, colaborador, o proyecto público+aprobado
+    // Verificar acceso: autor, colaborador, proyecto público+aprobado, o admin
     const ultima = versiones[versiones.length - 1];
+    const esAdmin = req.estudianteBDD?.rol === 'admin';
     const { esAutor, esColaborador } = rolesEnProyecto(ultima, usuarioId);
     const esPublicoAprobado = ultima.tipoProyecto === 'publico' && ultima.estado === 'aprobado';
 
-    if (!esAutor && !esColaborador && !esPublicoAprobado) {
+    if (!esAutor && !esColaborador && !esPublicoAprobado && !esAdmin) {
       return res.status(403).json({ success: false, message: 'No tienes permiso para ver este proyecto' });
     }
 
@@ -170,7 +171,8 @@ export const obtenerProyecto = async (req, res) => {
       && proyecto.estado === 'aprobado'
       && proyecto.activo;
 
-    if (!esPublicoAprobado && !esAutor && !esColaborador && !esAdmin) {
+    // Admin puede ver cualquier proyecto sin restricciones
+    if (!esAdmin && !esPublicoAprobado && !esAutor && !esColaborador) {
       return res.status(403).json({ success: false, message: 'No tienes permiso para ver este proyecto' });
     }
 
