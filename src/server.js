@@ -8,6 +8,7 @@ import estudianteRoutes from "./routes/estudiante_routes.js";
 import donacionRoutes from "./routes/donacion_routes.js";
 import dashboardRoutes from "./routes/dashboard_routes.js";
 import iaRoutes from "./routes/ia_routes.js";
+import chatRoutes from "./routes/chat_routes.js";
 import { v2 as cloudinary } from 'cloudinary';
 
 // ===== CONFIGURACIÓN DE CLOUDINARY =====
@@ -59,6 +60,7 @@ app.use("/api/admin/estudiantes", estudianteRoutes);
 app.use("/api/donaciones", donacionRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/ia", iaRoutes);
+app.use("/api/chat", chatRoutes);
 
 // ===== MANEJO DE ERRORES =====
 
