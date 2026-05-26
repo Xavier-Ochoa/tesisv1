@@ -699,6 +699,61 @@ export const eliminarColaborador = async (req, res) => {
   }
 };
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PROYECTOS DONDE SOY COLABORADOR
+// Devuelve proyectos donde el usuario aparece en el array colaboradores
+// pero NO es el autor. Para cada proyecto incluye la lista completa de
+// colaboradores del equipo (útil tanto para estudiante como docente).
+// ─────────────────────────────────────────────────────────────────────────────
+export const dondeColabora = async (req, res) => {
+  try {
+    const usuarioId = req.estudianteBDD._id;
+
+    const proyectos = await Proyecto.find({
+      colaboradores: usuarioId,
+      autor:         { $ne: usuarioId },
+      esUltimaVersion: true,
+      activo: true,
+    })
+      .populate('autor',         'nombre apellido carrera email')
+      .populate('colaboradores', 'nombre apellido carrera email semestre')
+      .sort('-createdAt')
+      .lean();
+
+    res.status(200).json({ success: true, total: proyectos.length, data: proyectos });
+  } catch (error) {
+    console.error('Error al obtener proyectos donde colabora:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MIS PROYECTOS CON COLABORADORES (para docente)
+// Devuelve proyectos donde el usuario es autor y tiene al menos 1 colaborador.
+// Incluye la lista completa de colaboradores de cada proyecto.
+// ─────────────────────────────────────────────────────────────────────────────
+export const misProyectosConColaboradores = async (req, res) => {
+  try {
+    const usuarioId = req.estudianteBDD._id;
+
+    const proyectos = await Proyecto.find({
+      autor:            usuarioId,
+      esUltimaVersion:  true,
+      activo:           true,
+      'colaboradores.0': { $exists: true },   // al menos 1 colaborador
+    })
+      .populate('colaboradores', 'nombre apellido carrera email semestre')
+      .sort('-createdAt')
+      .lean();
+
+    res.status(200).json({ success: true, total: proyectos.length, data: proyectos });
+  } catch (error) {
+    console.error('Error al obtener proyectos con colaboradores:', error);
+    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
+  }
+};
+
 export const listarColaboradores = async (req, res) => {
   try {
     const proyecto = await Proyecto.findById(req.params.id).populate('colaboradores', 'nombre apellido email carrera semestre');
