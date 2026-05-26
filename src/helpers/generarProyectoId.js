@@ -34,20 +34,32 @@ export const generarProyectoId = async (carrera) => {
   // proyecto_id tiene el formato XXX-YYYY-NNN
   const regex = new RegExp(`^[A-Z]{3}-${anio}-\\d+$`);
 
-  const ultimo = await Proyecto.findOne(
+  // Obtener TODOS los del año y encontrar el máximo numérico real
+  // (no alfabético, para evitar que '009' > '100')
+  const todos = await Proyecto.find(
     { proyecto_id: { $regex: regex } },
     { proyecto_id: 1 },
-  ).sort({ proyecto_id: -1 }).lean();
+  ).lean();
 
-  let siguiente = 1;
-  if (ultimo?.proyecto_id) {
-    const partes = ultimo.proyecto_id.split('-');
-    const numeroActual = parseInt(partes[2], 10);
-    if (!isNaN(numeroActual)) siguiente = numeroActual + 1;
+  let maximo = 0;
+  for (const p of todos) {
+    const partes = p.proyecto_id?.split('-');
+    const num = parseInt(partes?.[2], 10);
+    if (!isNaN(num) && num > maximo) maximo = num;
   }
 
-  const secuencial = String(siguiente).padStart(3, '0'); // '001', '002' …
-  return `${prefijo}-${anio}-${secuencial}`;
+  const secuencial = String(maximo + 1).padStart(3, '0'); // '001', '002' …
+
+  const candidato = `${prefijo}-${anio}-${secuencial}`;
+
+  // Verificación extra: si por race condition ya existe, incrementar
+  const existe = await Proyecto.exists({ proyecto_id: candidato, version: '001' });
+  if (existe) {
+    const secFallback = String(maximo + 2).padStart(3, '0');
+    return `${prefijo}-${anio}-${secFallback}`;
+  }
+
+  return candidato;
 };
 
 /**
