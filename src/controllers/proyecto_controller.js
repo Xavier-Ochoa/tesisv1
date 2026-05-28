@@ -3,6 +3,7 @@ import Estudiante from '../models/Estudiante.js';
 import { subirImagenCloudinary, eliminarImagenCloudinary } from '../helpers/uploadCloudinary.js';
 import { generarProyectoId, siguienteVersion } from '../helpers/generarProyectoId.js';
 import { validarEditable, validarVersionable, rolesEnProyecto } from '../helpers/reglasProyecto.js';
+import { subirPDFGridFS, eliminarPDFGridFS, descargarPDFGridFS } from '../helpers/gridfs.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LANDING — solo publico=true + aprobado + activo + esUltimaVersion
@@ -101,7 +102,6 @@ export const obtenerProyecto = async (req, res) => {
 
     const esAdmin = req.estudianteBDD?.rol === 'admin';
     const esPublicoAprobado = proyecto.publico && proyecto.estado === 'aprobado' && proyecto.activo;
-    // Admin puede ver proyectos con enviarAlAdmin=true
     const esAdminConAcceso = esAdmin && proyecto.enviarAlAdmin;
 
     if (!esAdminConAcceso && !esPublicoAprobado && !esAutor && !esColaborador) {
@@ -123,7 +123,6 @@ export const crearProyecto = async (req, res) => {
     req.body = req.body ?? {};
     const proyectoIdGenerado = await generarProyectoId(req.body.carrera);
 
-    // enviarAlAdmin viene del body como boolean, default false
     const enviarAlAdmin = req.body.enviarAlAdmin === true || req.body.enviarAlAdmin === 'true';
 
     const nuevoProyecto = new Proyecto({
@@ -134,7 +133,7 @@ export const crearProyecto = async (req, res) => {
       version:         '001',
       esUltimaVersion: true,
       enviarAlAdmin,
-      publico:         false, // siempre inicia privado
+      publico:         false,
     });
 
     if (req.files?.imagenes) {
@@ -143,6 +142,19 @@ export const crearProyecto = async (req, res) => {
       nuevoProyecto.imagenes   = subidas.map(s => s.secure_url);
       nuevoProyecto.imagenesID = subidas.map(s => s.public_id);
     }
+
+    // ── PDF (opcional al crear) ───────────────────────────────────────────────
+    if (req.files?.documento) {
+      const archivo = Array.isArray(req.files.documento) ? req.files.documento[0] : req.files.documento;
+      if (archivo.mimetype !== 'application/pdf') {
+        return res.status(400).json({ success: false, message: 'El documento debe ser un archivo PDF' });
+      }
+      const { readFileSync } = await import('fs');
+      const buffer = readFileSync(archivo.tempFilePath);
+      const meta   = await subirPDFGridFS(buffer, archivo.name, archivo.mimetype);
+      nuevoProyecto.documentos = [meta];
+    }
+
     await nuevoProyecto.save();
     await nuevoProyecto.populate('autor', 'nombre apellido carrera email');
     res.status(201).json({ success: true, message: 'Proyecto creado exitosamente. Está pendiente de revisión.', proyecto_id: proyectoIdGenerado, version: '001', data: nuevoProyecto });
@@ -171,7 +183,6 @@ export const actualizarProyecto = async (req, res) => {
     const errorRegla = validarEditable(proyecto);
     if (errorRegla) return res.status(403).json({ success: false, message: errorRegla });
 
-    // Una vez enviado al admin no puede revertirse
     if (proyecto.enviarAlAdmin && (req.body.enviarAlAdmin === false || req.body.enviarAlAdmin === 'false')) {
       return res.status(400).json({ success: false, message: 'Un proyecto ya enviado al admin no puede revertirse a privado' });
     }
@@ -185,7 +196,6 @@ export const actualizarProyecto = async (req, res) => {
     for (const campo of camposPermitidos) {
       if (req.body[campo] !== undefined) datosActualizacion[campo] = req.body[campo];
     }
-    // Permitir activar enviarAlAdmin (solo de false a true)
     if (!proyecto.enviarAlAdmin && (req.body.enviarAlAdmin === true || req.body.enviarAlAdmin === 'true')) {
       datosActualizacion.enviarAlAdmin = true;
     }
@@ -200,6 +210,23 @@ export const actualizarProyecto = async (req, res) => {
       datosActualizacion.imagenes   = [...(proyecto.imagenes ?? []),   ...subidas.map(s => s.secure_url)];
       datosActualizacion.imagenesID = [...(proyecto.imagenesID ?? []), ...subidas.map(s => s.public_id)];
     }
+
+    // ── PDF (opcional al actualizar — reemplaza el anterior) ──────────────────
+    if (req.files?.documento) {
+      const archivo = Array.isArray(req.files.documento) ? req.files.documento[0] : req.files.documento;
+      if (archivo.mimetype !== 'application/pdf') {
+        return res.status(400).json({ success: false, message: 'El documento debe ser un archivo PDF' });
+      }
+      // Eliminar el PDF anterior de GridFS si existe
+      if (proyecto.documentos?.length > 0) {
+        await eliminarPDFGridFS(proyecto.documentos[0].fileId);
+      }
+      const { readFileSync } = await import('fs');
+      const buffer = readFileSync(archivo.tempFilePath);
+      const meta   = await subirPDFGridFS(buffer, archivo.name, archivo.mimetype);
+      datosActualizacion.documentos = [meta];
+    }
+
     if (proyecto.estado === 'rechazado') datosActualizacion.estado = 'pendiente';
 
     const proyectoActualizado = await Proyecto.findByIdAndUpdate(id, { $set: datosActualizacion }, { new: true, runValidators: true })
@@ -212,8 +239,127 @@ export const actualizarProyecto = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SUBIR / REEMPLAZAR DOCUMENTO PDF  (autor)
+// PUT /:id/documento  — multipart/form-data campo: "documento"
+// ─────────────────────────────────────────────────────────────────────────────
+export const subirDocumentoProyecto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const estudianteId = req.estudianteBDD._id;
+
+    const proyecto = await Proyecto.findById(id);
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    if (proyecto.autor.toString() !== estudianteId.toString()) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para editar este proyecto' });
+    }
+    const errorRegla = validarEditable(proyecto);
+    if (errorRegla) return res.status(403).json({ success: false, message: errorRegla });
+
+    if (!req.files?.documento) {
+      return res.status(400).json({ success: false, message: 'No se recibió ningún archivo. Usa el campo "documento".' });
+    }
+
+    const archivo = Array.isArray(req.files.documento) ? req.files.documento[0] : req.files.documento;
+    if (archivo.mimetype !== 'application/pdf') {
+      return res.status(400).json({ success: false, message: 'El documento debe ser un archivo PDF' });
+    }
+
+    // Eliminar PDF anterior si existe
+    if (proyecto.documentos?.length > 0) {
+      await eliminarPDFGridFS(proyecto.documentos[0].fileId);
+    }
+
+    const { readFileSync } = await import('fs');
+    const buffer = readFileSync(archivo.tempFilePath);
+    const meta   = await subirPDFGridFS(buffer, archivo.name, archivo.mimetype);
+
+    proyecto.documentos = [meta];
+    await proyecto.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Documento subido exitosamente',
+      data: { documentos: proyecto.documentos },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error al subir el documento', error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ELIMINAR DOCUMENTO PDF  (autor)
+// DELETE /:id/documento
+// ─────────────────────────────────────────────────────────────────────────────
+export const eliminarDocumentoProyecto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const estudianteId = req.estudianteBDD._id;
+
+    const proyecto = await Proyecto.findById(id);
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    if (proyecto.autor.toString() !== estudianteId.toString()) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para editar este proyecto' });
+    }
+    const errorRegla = validarEditable(proyecto);
+    if (errorRegla) return res.status(403).json({ success: false, message: errorRegla });
+
+    if (!proyecto.documentos?.length) {
+      return res.status(404).json({ success: false, message: 'El proyecto no tiene documento adjunto' });
+    }
+
+    await eliminarPDFGridFS(proyecto.documentos[0].fileId);
+    proyecto.documentos = [];
+    await proyecto.save();
+
+    res.status(200).json({ success: true, message: 'Documento eliminado correctamente' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error al eliminar el documento', error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DESCARGAR / VER DOCUMENTO PDF
+// GET /:id/documento  — hace streaming del PDF al cliente
+// ─────────────────────────────────────────────────────────────────────────────
+export const descargarDocumentoProyecto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const estudianteId = req.estudianteBDD?._id;
+
+    const proyecto = await Proyecto.findById(id).lean();
+    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+
+    // Verificar acceso
+    const esAdmin = req.estudianteBDD?.rol === 'admin';
+    const { esAutor, esColaborador } = estudianteId
+      ? rolesEnProyecto(proyecto, estudianteId)
+      : { esAutor: false, esColaborador: false };
+    const esPublicoAprobado = proyecto.publico && proyecto.estado === 'aprobado' && proyecto.activo;
+
+    if (!esAdmin && !esAutor && !esColaborador && !esPublicoAprobado) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para descargar este documento' });
+    }
+
+    if (!proyecto.documentos?.length) {
+      return res.status(404).json({ success: false, message: 'El proyecto no tiene documento adjunto' });
+    }
+
+    const doc = proyecto.documentos[0];
+    res.set('Content-Type', doc.contentType || 'application/pdf');
+    res.set('Content-Disposition', `inline; filename="${doc.filename}"`);
+
+    const downloadStream = descargarPDFGridFS(doc.fileId);
+    downloadStream.on('error', () => {
+      res.status(404).json({ success: false, message: 'Archivo no encontrado en el servidor' });
+    });
+    downloadStream.pipe(res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error al descargar el documento', error: error.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // PUBLICAR PROYECTO (autor) — solo si aprobado y enviarAlAdmin=true
-// Una vez publicado no puede despublicarse
 // ─────────────────────────────────────────────────────────────────────────────
 export const publicarProyecto = async (req, res) => {
   try {
@@ -274,8 +420,8 @@ export const crearNuevaVersion = async (req, res) => {
       colaboradores:     versionActual.colaboradores,
       estado:            'pendiente',
       motivoRechazo:     '',
-      enviarAlAdmin:     true, // las versiones siempre se envían al admin
-      publico:           versionActual.publico, // hereda el estado de publicación
+      enviarAlAdmin:     true,
+      publico:           versionActual.publico,
       activo:            true,
       titulo:            versionActual.titulo,
       descripcion:       versionActual.descripcion,
@@ -290,6 +436,8 @@ export const crearNuevaVersion = async (req, res) => {
       carrera:           versionActual.carrera,
       imagenes:          [...(versionActual.imagenes ?? [])],
       imagenesID:        [...(versionActual.imagenesID ?? [])],
+      // Los documentos NO se heredan automáticamente; se suben aparte si se desea
+      documentos:        [],
       vistas: 0, likes: [], comentarios: [],
     };
     for (const campo of camposPermitidos) {
@@ -302,6 +450,19 @@ export const crearNuevaVersion = async (req, res) => {
       datosNuevaVersion.imagenes   = subidas.map(s => s.secure_url);
       datosNuevaVersion.imagenesID = subidas.map(s => s.public_id);
     }
+
+    // ── PDF en nueva versión (opcional) ───────────────────────────────────────
+    if (req.files?.documento) {
+      const archivo = Array.isArray(req.files.documento) ? req.files.documento[0] : req.files.documento;
+      if (archivo.mimetype !== 'application/pdf') {
+        return res.status(400).json({ success: false, message: 'El documento debe ser un archivo PDF' });
+      }
+      const { readFileSync } = await import('fs');
+      const buffer = readFileSync(archivo.tempFilePath);
+      const meta   = await subirPDFGridFS(buffer, archivo.name, archivo.mimetype);
+      datosNuevaVersion.documentos = [meta];
+    }
+
     await Proyecto.findByIdAndUpdate(id, { $set: { esUltimaVersion: false } });
     const nuevaVersionDoc = await Proyecto.create(datosNuevaVersion);
     await nuevaVersionDoc.populate('autor', 'nombre apellido carrera email');
@@ -326,17 +487,19 @@ export const eliminarProyecto = async (req, res) => {
     if (proyecto.autor.toString() !== estudianteId.toString()) {
       return res.status(403).json({ success: false, message: 'No tienes permiso para eliminar este proyecto' });
     }
-    // Proyectos enviados al admin no pueden ser eliminados por el autor
     if (proyecto.enviarAlAdmin) {
       return res.status(403).json({ success: false, message: 'Los proyectos enviados al admin no pueden ser eliminados por el autor. Contacta al administrador.' });
     }
-    // Borrado físico: solo proyectos no enviados al admin
     const todasVersiones = await Proyecto.find({ proyecto_id: proyecto.proyecto_id });
     for (const v of todasVersiones) {
       if (v.imagenesID?.length > 0) {
         for (const pid of v.imagenesID) {
           try { await eliminarImagenCloudinary(pid); } catch (e) { console.error(e); }
         }
+      }
+      // Eliminar PDF de GridFS si existe
+      if (v.documentos?.length > 0) {
+        await eliminarPDFGridFS(v.documentos[0].fileId);
       }
       await Proyecto.findByIdAndDelete(v._id);
     }
