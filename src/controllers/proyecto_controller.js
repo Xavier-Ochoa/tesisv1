@@ -420,7 +420,7 @@ export const crearNuevaVersion = async (req, res) => {
       colaboradores:     versionActual.colaboradores,
       estado:            'pendiente',
       motivoRechazo:     '',
-      enviarAlAdmin:     true,
+      enviarAlAdmin:     req.body.enviarAlAdmin === false || req.body.enviarAlAdmin === 'false' ? false : true,
       publico:           versionActual.publico,
       activo:            true,
       titulo:            versionActual.titulo,
