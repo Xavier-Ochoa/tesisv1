@@ -1,5 +1,6 @@
 import Proyecto from '../models/Proyecto.js';
 import { subirImagenCloudinary, eliminarImagenCloudinary } from '../helpers/uploadCloudinary.js';
+import { eliminarPDFGridFS } from '../helpers/gridfs.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LISTAR TODOS LOS PROYECTOS — admin
@@ -84,7 +85,13 @@ export const actualizarProyectoAdmin = async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DESACTIVAR PROYECTO (admin)
-// Solo puede desactivar proyectos en estado 'pendiente' o 'rechazado'
+//
+// Reglas:
+//   ✅ Se puede desactivar: estado pendiente o rechazado  +  publico=false
+//   ❌ NO se puede desactivar: estado aprobado  O  publico=true
+//
+// Motivo: un proyecto aprobado y/o publicado ya es visible para el público;
+// desactivarlo ocultaría contenido validado sin el proceso correcto.
 // ─────────────────────────────────────────────────────────────────────────────
 export const desactivarProyectoAdmin = async (req, res) => {
   try {
@@ -97,10 +104,23 @@ export const desactivarProyectoAdmin = async (req, res) => {
     if (!proyecto.activo) {
       return res.status(400).json({ success: false, message: 'El proyecto ya está desactivado' });
     }
-    // Solo puede desactivar proyectos pendientes o rechazados
+
+    // Bloquear si está aprobado
     if (proyecto.estado === 'aprobado') {
-      return res.status(400).json({ success: false, message: 'No se puede desactivar un proyecto aprobado. Solo se pueden desactivar proyectos en estado pendiente o rechazado.' });
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede desactivar un proyecto aprobado. Solo se pueden desactivar proyectos en estado pendiente o rechazado que no estén publicados.',
+      });
     }
+
+    // Bloquear si está publicado (aunque no esté aprobado, por seguridad)
+    if (proyecto.publico) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se puede desactivar un proyecto publicado. Solo se pueden desactivar proyectos privados (no publicados) en estado pendiente o rechazado.',
+      });
+    }
+
     await Proyecto.updateMany({ proyecto_id: proyecto.proyecto_id }, { $set: { activo: false } });
     res.status(200).json({ success: true, message: 'Proyecto desactivado. Todas las versiones han sido desactivadas.' });
   } catch (error) {
