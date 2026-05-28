@@ -27,6 +27,9 @@ import {
   dondeColabora,
   misProyectosConColaboradores,
   publicarProyecto,
+  subirDocumentoProyecto,
+  eliminarDocumentoProyecto,
+  descargarDocumentoProyecto,
 } from '../controllers/proyecto_controller.js';
 import { verificarTokenJWT, verificarDocente, verificarTokenOpcional } from '../middlewares/JWT.js';
 import {
@@ -68,6 +71,14 @@ router.post('/:id/versiones', verificarTokenJWT, fileUploadMiddleware, validarAc
 
 // ── IMÁGENES ──────────────────────────────────────────────────────────────────
 router.delete('/:id/imagenes', verificarTokenJWT, eliminarImagenProyecto);
+
+// ── DOCUMENTO PDF (GridFS) ────────────────────────────────────────────────────
+// PUT  /:id/documento  → subir/reemplazar PDF (campo form-data: "documento")
+// GET  /:id/documento  → descargar/ver PDF en el navegador
+// DELETE /:id/documento → eliminar PDF
+router.put('/:id/documento',    verificarTokenJWT, fileUploadMiddleware, subirDocumentoProyecto);
+router.get('/:id/documento',    verificarTokenOpcional, descargarDocumentoProyecto);
+router.delete('/:id/documento', verificarTokenJWT, eliminarDocumentoProyecto);
 
 // ── LIKES ─────────────────────────────────────────────────────────────────────
 router.post('/:id/like',   verificarTokenJWT, agregarLike);
