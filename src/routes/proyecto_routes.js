@@ -26,6 +26,7 @@ import {
   eliminarImagenColaborador,
   dondeColabora,
   misProyectosConColaboradores,
+  publicarProyecto,
 } from '../controllers/proyecto_controller.js';
 import { verificarTokenJWT, verificarDocente, verificarTokenOpcional } from '../middlewares/JWT.js';
 import {
@@ -49,40 +50,21 @@ router.get('/estudiante/:id',        listarProyectosPorEstudiante);
 router.get('/usuario/mis-proyectos', verificarTokenJWT, misProyectos);
 
 // ── DETALLE ───────────────────────────────────────────────────────────────────
-router.get('/donde-colaboro',                    verificarTokenJWT, dondeColabora);
+router.get('/donde-colaboro',                  verificarTokenJWT, dondeColabora);
 router.get('/mis-proyectos-con-colaboradores', verificarTokenJWT, misProyectosConColaboradores);
-router.get('/:id',                   verificarTokenOpcional, obtenerProyecto);
+router.get('/:id',                             verificarTokenOpcional, obtenerProyecto);
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
-router.post('/',
-  verificarTokenJWT,
-  fileUploadMiddleware,
-  validarCrearProyecto,
-  manejarErroresValidacion,
-  crearProyecto
-);
-
-router.put('/:id',
-  verificarTokenJWT,
-  fileUploadMiddleware,
-  validarActualizarProyecto,
-  manejarErroresValidacion,
-  actualizarProyecto
-);
-
+router.post('/', verificarTokenJWT, fileUploadMiddleware, validarCrearProyecto, manejarErroresValidacion, crearProyecto);
+router.put('/:id', verificarTokenJWT, fileUploadMiddleware, validarActualizarProyecto, manejarErroresValidacion, actualizarProyecto);
 router.delete('/:id', verificarTokenJWT, eliminarProyecto);
 
+// ── PUBLICAR (autor) — solo si aprobado ───────────────────────────────────────
+router.put('/:id/publicar', verificarTokenJWT, publicarProyecto);
+
 // ── VERSIONADO ────────────────────────────────────────────────────────────────
-// GET  /proyectos/versiones/:proyectoId  → historial de versiones por proyecto_id
-// POST /proyectos/:id/versiones          → crear nueva versión a partir del _id actual
 router.get('/versiones/:proyectoId',  verificarTokenJWT, historialVersiones);
-router.post('/:id/versiones',
-  verificarTokenJWT,
-  fileUploadMiddleware,
-  validarActualizarProyecto,
-  manejarErroresValidacion,
-  crearNuevaVersion
-);
+router.post('/:id/versiones', verificarTokenJWT, fileUploadMiddleware, validarActualizarProyecto, manejarErroresValidacion, crearNuevaVersion);
 
 // ── IMÁGENES ──────────────────────────────────────────────────────────────────
 router.delete('/:id/imagenes', verificarTokenJWT, eliminarImagenProyecto);
@@ -92,12 +74,7 @@ router.post('/:id/like',   verificarTokenJWT, agregarLike);
 router.delete('/:id/like', verificarTokenJWT, quitarLike);
 
 // ── COMENTARIOS ───────────────────────────────────────────────────────────────
-router.post('/:id/comentarios',
-  verificarTokenJWT,
-  validarAgregarComentario,
-  manejarErroresValidacion,
-  agregarComentario
-);
+router.post('/:id/comentarios', verificarTokenJWT, validarAgregarComentario, manejarErroresValidacion, agregarComentario);
 router.delete('/:id/comentarios/:comentarioId', verificarTokenJWT, eliminarComentario);
 
 // ── COLABORADORES ─────────────────────────────────────────────────────────────
