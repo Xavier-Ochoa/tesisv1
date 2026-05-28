@@ -33,18 +33,15 @@ export const validarEditable = (proyecto) => {
 /**
  * Reglas de versionado:
  *  - Solo aplica a la última versión.
- *  - Solo proyectos con enviarAlAdmin=true pueden tener versiones.
- *  - Solo cuando ya fue aprobado.
+ *  - Solo cuando ya fue aprobado (sin importar enviarAlAdmin).
+ *  - La nueva versión puede enviarse o no al admin (lo elige el autor).
  */
 export const validarVersionable = (proyecto) => {
   if (!proyecto.esUltimaVersion) {
     return 'Solo se puede versionar desde la última versión del proyecto';
   }
-  const { enviarAlAdmin, estado } = proyecto;
+  const { estado } = proyecto;
 
-  if (!enviarAlAdmin) {
-    return 'Los proyectos no enviados al admin no pueden tener versiones. Usa la edición directa.';
-  }
   if (estado === 'pendiente') {
     return 'El proyecto está pendiente de revisión. Espera la respuesta del administrador antes de crear una nueva versión';
   }
