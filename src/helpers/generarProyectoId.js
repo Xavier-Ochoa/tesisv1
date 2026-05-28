@@ -1,21 +1,21 @@
 import Proyecto from '../models/Proyecto.js';
 
 /**
- * Prefijos por carrera
+ * Prefijos por carrera (nuevos códigos TS*)
  */
 const PREFIJOS_CARRERA = {
-  'Desarrollo de Software':            'DSW',
-  'Redes y Telecomunicaciones':        'RED',
-  'Electromecánica':                   'ELM',
-  'Agua y Saneamiento Ambiental':      'ASA',
-  'Procesamiento de Alimentos':        'PAL',
-  'Procesamiento Industrial de la Madera': 'PIM',
+  'Agua y Saneamiento Ambiental':          'TSASA',
+  'Desarrollo de Software':                'TSDS',
+  'Electromecánica':                       'TSEM',
+  'Redes y Telecomunicaciones':            'TSRT',
+  'Procesamiento de Alimentos':            'TSIA',
+  'Procesamiento Industrial de la Madera': 'TSPIM',
 };
 
 /**
  * Genera el siguiente proyecto_id.
  *
- * Formato: PREFIJO-AÑO-SECUENCIAL  →  DSW-2026-001
+ * Formato: PREFIJO-AÑO-SECUENCIAL  →  TSDS-2026-001
  *
  * El contador es GLOBAL (todas las carreras juntas) y se reinicia cada año.
  * Se busca el último proyecto_id del año en curso y se incrementa en 1.
@@ -31,11 +31,10 @@ export const generarProyectoId = async (carrera) => {
 
   // Buscar todos los proyecto_id del año actual (sin importar carrera)
   // para obtener el máximo secuencial global.
-  // proyecto_id tiene el formato XXX-YYYY-NNN
-  const regex = new RegExp(`^[A-Z]{3}-${anio}-\\d+$`);
+  // proyecto_id tiene el formato XXXX-YYYY-NNN (prefijo variable)
+  const regex = new RegExp(`^[A-Z]+-${anio}-\\d+$`);
 
   // Obtener TODOS los del año y encontrar el máximo numérico real
-  // (no alfabético, para evitar que '009' > '100')
   const todos = await Proyecto.find(
     { proyecto_id: { $regex: regex } },
     { proyecto_id: 1 },
@@ -44,7 +43,7 @@ export const generarProyectoId = async (carrera) => {
   let maximo = 0;
   for (const p of todos) {
     const partes = p.proyecto_id?.split('-');
-    const num = parseInt(partes?.[2], 10);
+    const num = parseInt(partes?.[partes.length - 1], 10);
     if (!isNaN(num) && num > maximo) maximo = num;
   }
 
