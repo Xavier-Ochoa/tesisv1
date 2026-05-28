@@ -64,7 +64,20 @@ const proyectoSchema = new Schema(
 
     imagenes: [{ type: String }],
     imagenesID: [{ type: String }],
-    documentos: [{ nombre: String, url: String, tipo: String }],
+
+    // ── documentos PDF (GridFS) ────────────────────────────────────────────────
+    // Máximo 1 PDF por proyecto (se reemplaza al subir uno nuevo).
+    // fileId referencia el _id en proyectos_docs.files de GridFS.
+    documentos: [
+      {
+        filename:    { type: String },
+        fileId:      { type: Schema.Types.ObjectId },
+        uploadDate:  { type: Date, default: Date.now },
+        contentType: { type: String, default: 'application/pdf' },
+        size:        { type: Number },       // bytes
+      },
+    ],
+
     tecnologias: [{ type: String, trim: true }],
     repositorio: { type: String, trim: true },
     enlaceDemo: { type: String, trim: true },
