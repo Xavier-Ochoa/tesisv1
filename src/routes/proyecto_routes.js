@@ -52,10 +52,14 @@ router.get('/estudiante/:id',        listarProyectosPorEstudiante);
 // ── MIS PROYECTOS ─────────────────────────────────────────────────────────────
 router.get('/usuario/mis-proyectos', verificarTokenJWT, misProyectos);
 
-// ── DETALLE ───────────────────────────────────────────────────────────────────
+// ── RUTAS ESTÁTICAS (deben ir ANTES de /:id para evitar conflictos) ───────────
 router.get('/donde-colaboro',                  verificarTokenJWT, dondeColabora);
 router.get('/mis-proyectos-con-colaboradores', verificarTokenJWT, misProyectosConColaboradores);
-router.get('/:id',                             verificarTokenOpcional, obtenerProyecto);
+// FIX: /versiones/:proyectoId estaba después de /:id y era interceptado por él
+router.get('/versiones/:proyectoId',           verificarTokenJWT, historialVersiones);
+
+// ── DETALLE ───────────────────────────────────────────────────────────────────
+router.get('/:id', verificarTokenOpcional, obtenerProyecto);
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
 router.post('/', verificarTokenJWT, fileUploadMiddleware, validarCrearProyecto, manejarErroresValidacion, crearProyecto);
@@ -65,8 +69,7 @@ router.delete('/:id', verificarTokenJWT, eliminarProyecto);
 // ── PUBLICAR (autor) — solo si aprobado ───────────────────────────────────────
 router.put('/:id/publicar', verificarTokenJWT, publicarProyecto);
 
-// ── VERSIONADO ────────────────────────────────────────────────────────────────
-router.get('/versiones/:proyectoId',  verificarTokenJWT, historialVersiones);
+// ── VERSIONADO (POST) ─────────────────────────────────────────────────────────
 router.post('/:id/versiones', verificarTokenJWT, fileUploadMiddleware, validarActualizarProyecto, manejarErroresValidacion, crearNuevaVersion);
 
 // ── IMÁGENES ──────────────────────────────────────────────────────────────────
