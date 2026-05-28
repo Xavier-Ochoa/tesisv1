@@ -466,7 +466,10 @@ export const crearNuevaVersion = async (req, res) => {
     await Proyecto.findByIdAndUpdate(id, { $set: { esUltimaVersion: false } });
     const nuevaVersionDoc = await Proyecto.create(datosNuevaVersion);
     await nuevaVersionDoc.populate('autor', 'nombre apellido carrera email');
-    res.status(201).json({ success: true, message: `Versión ${nuevaVersion} creada exitosamente. Queda pendiente de revisión.`, proyecto_id: versionActual.proyecto_id, version: nuevaVersion, data: nuevaVersionDoc });
+    const msg = datosNuevaVersion.enviarAlAdmin
+      ? `Versión ${nuevaVersion} creada y enviada al administrador para revisión.`
+      : `Versión ${nuevaVersion} creada como borrador privado. Puedes enviarla al administrador cuando la tengas lista.`;
+    res.status(201).json({ success: true, message: msg, proyecto_id: versionActual.proyecto_id, version: nuevaVersion, data: nuevaVersionDoc });
   } catch (error) {
     if (error.name === 'ValidationError') {
       return res.status(400).json({ success: false, message: 'Error de validación', errors: Object.values(error.errors).map(e => e.message) });
