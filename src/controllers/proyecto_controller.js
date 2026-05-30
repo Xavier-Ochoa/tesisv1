@@ -535,9 +535,12 @@ export const buscarProyectos = async (req, res) => {
     const filtro = { estado: 'aprobado', publico: true, activo: true, esUltimaVersion: true, $text: { $search: q.trim() } };
     if (categoria) filtro.categoria = categoria;
     if (carrera)   filtro.carrera   = decodeURIComponent(carrera);
-    const proyectos = await Proyecto.find(filtro).populate('autor', 'nombre apellido carrera')
-      .limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
-    res.status(200).json({ success: true, data: proyectos, total: proyectos.length });
+    const [proyectos, total] = await Promise.all([
+      Proyecto.find(filtro).populate('autor', 'nombre apellido carrera')
+        .limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
+      Proyecto.countDocuments(filtro)
+    ]);
+    res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / Number(limit)), limit: parseInt(limit) } });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error al buscar proyectos', error: error.message });
   }
