@@ -98,7 +98,7 @@ export const getEstadisticasUsuario = async (req, res) => {
 
     // Sus proyectos completos
     const susProyectos = await Proyecto.find({ autor: estudianteId })
-      .select('titulo categoria estado vistas likes createdAt tecnologias')
+      .select('titulo categoria estado vistas likes createdAt tecnologias publico')
       .sort({ createdAt: -1 });
 
     // Sus proyectos por categoría
