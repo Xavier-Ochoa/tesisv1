@@ -165,9 +165,32 @@ export const validarCambiarPassword = [
   body(['passwordactual', 'contraseñaActual'])
     .notEmpty().withMessage('La contraseña actual es obligatoria'),
 
-  // Nueva contraseña — aplicar todas las reglas de seguridad
-  reglasPassword('passwordnuevo'),
-  reglasPassword('contraseñaNueva'),
+  // Nueva contraseña — opcional individualmente, pero al menos uno debe llegar con valor
+  // El controlador recoge: req.body.passwordnuevo || req.body['contraseñaNueva']
+  body('passwordnuevo')
+    .optional({ checkFalsy: false })
+    .isLength({ min: 8, max: 50 }).withMessage('La contraseña debe tener entre 8 y 50 caracteres')
+    .matches(/[A-Z]/).withMessage('La contraseña debe contener al menos una letra mayúscula')
+    .matches(/[a-z]/).withMessage('La contraseña debe contener al menos una letra minúscula')
+    .matches(/[0-9]/).withMessage('La contraseña debe contener al menos un número')
+    .matches(/[^A-Za-z0-9]/).withMessage('La contraseña debe contener al menos un símbolo (ej: @, #, !)'),
+
+  body('contraseñaNueva')
+    .optional({ checkFalsy: false })
+    .isLength({ min: 8, max: 50 }).withMessage('La contraseña debe tener entre 8 y 50 caracteres')
+    .matches(/[A-Z]/).withMessage('La contraseña debe contener al menos una letra mayúscula')
+    .matches(/[a-z]/).withMessage('La contraseña debe contener al menos una letra minúscula')
+    .matches(/[0-9]/).withMessage('La contraseña debe contener al menos un número')
+    .matches(/[^A-Za-z0-9]/).withMessage('La contraseña debe contener al menos un símbolo (ej: @, #, !)'),
+
+  // Validar que al menos uno de los dos alias llegó con valor
+  body('passwordnuevo').custom((value, { req }) => {
+    const nueva = value || req.body['contraseñaNueva'];
+    if (!nueva || nueva.trim() === '') {
+      throw new Error('La nueva contraseña es obligatoria');
+    }
+    return true;
+  }),
 
   // Confirmación — obligatoria y debe coincidir con la nueva contraseña
   body('confirmarPassword')
