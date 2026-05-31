@@ -175,6 +175,15 @@ usuarioSchema.methods.matchPassword = async function (password) {
 usuarioSchema.methods.createToken = function () {
   const tokenGenerado = Math.random().toString(36).slice(2);
   this.token = tokenGenerado;
+  this.tokenExpira = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 horas desde ahora
+  return tokenGenerado;
+};
+
+
+// Token de recuperación de contraseña — 1 hora de vigencia
+usuarioSchema.methods.createTokenRecuperacion = function () {
+  const tokenGenerado = Math.random().toString(36).slice(2);
+  this.token = tokenGenerado;
   this.tokenExpira = new Date(Date.now() + 60 * 60 * 1000); // 1 hora desde ahora
   return tokenGenerado;
 };
