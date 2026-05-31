@@ -47,18 +47,17 @@ export const generarProyectoId = async (carrera) => {
     if (!isNaN(num) && num > maximo) maximo = num;
   }
 
-  const secuencial = String(maximo + 1).padStart(3, '0'); // '001', '002' …
+  const MAX_INTENTOS = 10;
 
-  const candidato = `${prefijo}-${anio}-${secuencial}`;
+  for (let intento = 0; intento < MAX_INTENTOS; intento++) {
+    const secuencial = String(maximo + 1 + intento).padStart(3, '0');
+    const candidato = `${prefijo}-${anio}-${secuencial}`;
 
-  // Verificación extra: si por race condition ya existe, incrementar
-  const existe = await Proyecto.exists({ proyecto_id: candidato, version: '001' });
-  if (existe) {
-    const secFallback = String(maximo + 2).padStart(3, '0');
-    return `${prefijo}-${anio}-${secFallback}`;
+    const existe = await Proyecto.exists({ proyecto_id: candidato, version: '001' });
+    if (!existe) return candidato;
   }
 
-  return candidato;
+  throw new Error(`No se pudo generar un proyecto_id único después de ${MAX_INTENTOS} intentos`);
 };
 
 /**
