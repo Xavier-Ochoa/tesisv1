@@ -113,49 +113,6 @@ export const obtenerEstudiante = async (req, res) => {
 };
 
 /**
- * Eliminar cualquier usuario por ID.
- * Solo para administradores.
- * El admin NO puede eliminarse a sí mismo.
- */
-export const eliminarUsuario = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const adminId = req.estudianteBDD._id.toString();
-
-    // Impedir que el admin se elimine a sí mismo
-    if (id === adminId) {
-      return res.status(400).json({
-        success: false,
-        message: 'No puedes eliminar tu propia cuenta de administrador',
-      });
-    }
-
-    const usuario = await Estudiante.findById(id);
-    if (!usuario) {
-      return res.status(404).json({
-        success: false,
-        message: 'Usuario no encontrado',
-      });
-    }
-
-    await Estudiante.findByIdAndDelete(id);
-
-    res.status(200).json({
-      success: true,
-      message: `Usuario ${usuario.nombre} ${usuario.apellido} (${usuario.email}) eliminado correctamente`,
-    });
-
-  } catch (error) {
-    console.error('Error al eliminar usuario:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar el usuario',
-      error: error.message,
-    });
-  }
-};
-
-/**
  * Cambiar el estado de un usuario (activo / inactivo).
  * Solo para administradores.
  * El admin NO puede cambiar su propio estado.
