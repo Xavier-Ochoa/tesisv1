@@ -328,7 +328,7 @@ const perfil = (req, res) => {
 // ===== ACTUALIZAR PERFIL — HU-004 =====
 /**
  * Campos PERMITIDOS para actualizar:
- *   apellido, fotoPerfil (archivo), carrera, semestre, telefono, descripcion, github
+ *   fotoPerfil (archivo), carrera, semestre, telefono, descripcion, github
  *
  * Campos BLOQUEADOS (inmutables):
  *   nombre, cedula, email / correoInstitucional, rol
