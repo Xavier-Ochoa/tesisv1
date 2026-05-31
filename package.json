@@ -12,7 +12,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@huggingface/inference": "^4.13.11",
     "@types/multer": "^2.1.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.9.0",
@@ -28,9 +27,7 @@
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.10",
     "pusher": "^5.2.0",
-    "replicate": "^1.4.0",
     "socket.io": "^4.8.3",
-    "socket.io-client": "^4.8.3",
     "stripe": "^19.1.0"
   }
 }
