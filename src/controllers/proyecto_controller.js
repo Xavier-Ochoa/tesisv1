@@ -349,8 +349,12 @@ export const descargarDocumentoProyecto = async (req, res) => {
     res.set('Content-Disposition', `inline; filename="${doc.filename}"`);
 
     const downloadStream = descargarPDFGridFS(doc.fileId);
-    downloadStream.on('error', () => {
-      res.status(404).json({ success: false, message: 'Archivo no encontrado en el servidor' });
+    downloadStream.on('error', (err) => {
+      console.error('Error descargando PDF:', err.message);
+      if (!res.headersSent) {
+        return res.status(404).json({ success: false, message: 'Error al descargar el archivo' });
+      }
+      res.end();
     });
     downloadStream.pipe(res);
   } catch (error) {
