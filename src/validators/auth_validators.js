@@ -161,9 +161,16 @@ export const validarActualizarPerfil = [
  */
 export const validarCambiarPassword = [
 
-  // Contraseña actual — cualquiera de los dos aliases es válido
-  body(['passwordactual', 'contraseñaActual'])
-    .notEmpty().withMessage('La contraseña actual es obligatoria'),
+  // Contraseña actual — cualquiera de los dos aliases es válido, no ambos obligatorios
+  body('passwordactual').optional({ checkFalsy: true }),
+  body('contraseñaActual').optional({ checkFalsy: true }),
+  body('confirmarPassword').custom((value, { req }) => {
+    const actual = req.body.passwordactual || req.body['contraseñaActual'];
+    if (!actual || actual.trim() === '') {
+      throw new Error('La contraseña actual es obligatoria');
+    }
+    return true;
+  }).bail(),
 
   // Nueva contraseña — validar ambos aliases juntos con las mismas reglas
   // corre si cualquiera de los dos llega con valor
