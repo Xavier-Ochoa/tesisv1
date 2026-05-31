@@ -3,7 +3,6 @@ import {
   listarEstudiantes,
   obtenerEstudiante,
   estadisticasEstudiantes,
-  eliminarUsuario,
   cambiarEstadoUsuario,
 } from '../controllers/estudiante_controller.js';
 import { verificarTokenJWT, verificarAdmin } from '../middlewares/JWT.js';
@@ -78,16 +77,5 @@ router.patch(
   cambiarEstadoUsuario
 );
 
-/**
- * DELETE /api/admin/estudiantes/:id
- * Eliminar cualquier usuario (estudiante o docente).
- * El admin NO puede eliminarse a sí mismo → 400.
- */
-router.delete(
-  '/:id',
-  verificarTokenJWT,
-  verificarAdmin,
-  eliminarUsuario
-);
 
 export default router;
