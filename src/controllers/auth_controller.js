@@ -126,7 +126,9 @@ const registro = async (req, res) => {
         }
 
         res.status(500).json({
-            msg: `Error en el servidor: ${error.message}`,
+            success: false,
+            message: 'Error interno del servidor',
+            error: error.message,
             ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
         });
     }
@@ -155,7 +157,7 @@ const confirmarMail = async (req, res) => {
         res.status(200).json({ msg: 'Cuenta confirmada. Ya puedes iniciar sesión.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ msg: `❌ Error en el servidor - ${error}` });
+        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
     }
 };
 
@@ -183,7 +185,7 @@ const recuperarPassword = async (req, res) => {
         res.status(200).json({ msg: 'Revisa tu correo institucional para restablecer tu contraseña' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ msg: `❌ Error en el servidor - ${error}` });
+        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
     }
 };
 
@@ -206,7 +208,7 @@ const comprobarTokenPasword = async (req, res) => {
         res.status(200).json({ msg: 'Token confirmado. Ya puedes crear tu nueva contraseña.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ msg: `❌ Error en el servidor - ${error}` });
+        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
     }
 };
 
@@ -237,7 +239,7 @@ const crearNuevoPassword = async (req, res) => {
         res.status(200).json({ msg: '¡Contraseña actualizada! Ya puedes iniciar sesión.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ msg: `❌ Error en el servidor - ${error}` });
+        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
     }
 };
 
@@ -290,7 +292,7 @@ const login = async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ msg: `❌ Error en el servidor - ${error}` });
+        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
     }
 };
 
@@ -307,7 +309,7 @@ const cerrarSesion = async (req, res) => {
             return res.status(200).json({ msg: 'La sesión ya había sido cerrada anteriormente' });
         }
         console.error('Error al cerrar sesión:', error);
-        res.status(500).json({ msg: `Error en el servidor: ${error.message}` });
+        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
     }
 };
 
@@ -321,7 +323,7 @@ const perfil = (req, res) => {
             correoInstitucional: datosPerfil.email,
         });
     } catch (error) {
-        res.status(500).json({ msg: `Error en el servidor: ${error}` });
+        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
     }
 };
 
@@ -406,7 +408,7 @@ const actualizarPerfil = async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ msg: `❌ Error en el servidor - ${error.message}` });
+        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
     }
 };
 
@@ -439,7 +441,7 @@ const actualizarPassword = async (req, res) => {
 
         res.status(200).json({ msg: 'Contraseña actualizada correctamente' });
     } catch (error) {
-        res.status(500).json({ msg: `❌ Error en el servidor - ${error}` });
+        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
     }
 };
 
@@ -499,7 +501,7 @@ const cambiarRol = async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error al cambiar rol:', error.message);
-        res.status(500).json({ msg: `Error en el servidor: ${error.message}` });
+        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
     }
 };
 
@@ -539,7 +541,7 @@ const reenviarConfirmacion = async (req, res) => {
         res.status(200).json({ msg: 'Token de confirmación reenviado. Revisa tu correo institucional.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ msg: `❌ Error en el servidor - ${error}` });
+        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
     }
 };
 
