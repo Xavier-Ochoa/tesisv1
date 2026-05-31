@@ -571,8 +571,11 @@ export const listarProyectosPorCarrera = async (req, res) => {
     const { carrera } = req.params;
     const { page = 1, limit = 10 } = req.query;
     const filtro = { carrera: decodeURIComponent(carrera), estado: 'aprobado', publico: true, activo: true, esUltimaVersion: true };
-    const proyectos = await Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt').limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
-    res.status(200).json({ success: true, data: proyectos });
+    const [proyectos, total] = await Promise.all([
+      Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt').limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
+      Proyecto.countDocuments(filtro)
+    ]);
+    res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / Number(limit)), limit: parseInt(limit) } });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
   }
@@ -583,8 +586,11 @@ export const listarProyectosPorEstudiante = async (req, res) => {
     const { id } = req.params;
     const { page = 1, limit = 10 } = req.query;
     const filtro = { autor: id, estado: 'aprobado', publico: true, activo: true, esUltimaVersion: true };
-    const proyectos = await Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt').limit(Number(limit)).skip((Number(page) - 1) * Number(limit));
-    res.status(200).json({ success: true, data: proyectos });
+    const [proyectos, total] = await Promise.all([
+      Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt').limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
+      Proyecto.countDocuments(filtro)
+    ]);
+    res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / Number(limit)), limit: parseInt(limit) } });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
   }
