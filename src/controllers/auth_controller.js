@@ -136,10 +136,20 @@ const registro = async (req, res) => {
 const confirmarMail = async (req, res) => {
     try {
         const { token } = req.params;
-        // +token y +confirmEmail son necesarios porque tienen select:false en el modelo
-        const usuarioBDD = await Estudiante.findOne({ token }).select('+token +confirmEmail');
+        // +token, +confirmEmail y +tokenExpira necesarios porque tienen select:false en el modelo
+        const usuarioBDD = await Estudiante.findOne({ token }).select('+token +confirmEmail +tokenExpira');
         if (!usuarioBDD) return res.status(404).json({ msg: 'Token inválido o cuenta ya confirmada' });
+
+        // Verificar que el token no haya vencido (24 horas de vigencia)
+        if (!usuarioBDD.tokenExpira || usuarioBDD.tokenExpira < new Date()) {
+            usuarioBDD.token       = null;
+            usuarioBDD.tokenExpira = null;
+            await usuarioBDD.save();
+            return res.status(400).json({ msg: 'El enlace de confirmación ha expirado, solicita uno nuevo' });
+        }
+
         usuarioBDD.token        = null;
+        usuarioBDD.tokenExpira  = null;
         usuarioBDD.confirmEmail = true;
         await usuarioBDD.save();
         res.status(200).json({ msg: 'Cuenta confirmada. Ya puedes iniciar sesión.' });
@@ -166,7 +176,7 @@ const recuperarPassword = async (req, res) => {
         if (!usuarioBDD.confirmEmail)
             return res.status(403).json({ msg: 'Debes confirmar tu correo institucional antes de recuperar tu contraseña.' });
 
-        const token = usuarioBDD.createToken();
+        const token = usuarioBDD.createTokenRecuperacion();
         usuarioBDD.token = token;
         await sendMailToRecoveryPassword(email, token);
         await usuarioBDD.save();
@@ -514,7 +524,7 @@ const reenviarConfirmacion = async (req, res) => {
             return res.status(403).json({ msg: 'Tu cuenta ha sido suspendida. Contacta con el administrador.' });
 
         // Generar nuevo token y guardarlo
-        const nuevoToken = usuarioBDD.createToken();
+        const nuevoToken = usuarioBDD.createTokenRecuperacion();
         usuarioBDD.token = nuevoToken;
         await usuarioBDD.save();
 
