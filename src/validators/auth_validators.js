@@ -161,42 +161,28 @@ export const validarActualizarPerfil = [
  */
 export const validarCambiarPassword = [
 
-  // Contraseña actual — verificar que al menos uno de los dos aliases llegó y no está vacío
+  // Contraseña actual — cualquiera de los dos aliases es válido
   body(['passwordactual', 'contraseñaActual'])
     .notEmpty().withMessage('La contraseña actual es obligatoria'),
 
-  // Nueva contraseña — opcional individualmente, pero al menos uno debe llegar con valor
-  // El controlador recoge: req.body.passwordnuevo || req.body['contraseñaNueva']
-  body('passwordnuevo')
-    .optional({ checkFalsy: false })
+  // Nueva contraseña — validar ambos aliases juntos con las mismas reglas
+  // corre si cualquiera de los dos llega con valor
+  body(['passwordnuevo', 'contraseñaNueva'])
+    .optional({ checkFalsy: true })
     .isLength({ min: 8, max: 64 }).withMessage('La contraseña debe tener entre 8 y 64 caracteres')
     .matches(/[A-Z]/).withMessage('La contraseña debe contener al menos una letra mayúscula')
     .matches(/[a-z]/).withMessage('La contraseña debe contener al menos una letra minúscula')
     .matches(/[0-9]/).withMessage('La contraseña debe contener al menos un número')
     .matches(/[^A-Za-z0-9]/).withMessage('La contraseña debe contener al menos un símbolo (ej: @, #, !)'),
 
-  body('contraseñaNueva')
-    .optional({ checkFalsy: false })
-    .isLength({ min: 8, max: 64 }).withMessage('La contraseña debe tener entre 8 y 64 caracteres')
-    .matches(/[A-Z]/).withMessage('La contraseña debe contener al menos una letra mayúscula')
-    .matches(/[a-z]/).withMessage('La contraseña debe contener al menos una letra minúscula')
-    .matches(/[0-9]/).withMessage('La contraseña debe contener al menos un número')
-    .matches(/[^A-Za-z0-9]/).withMessage('La contraseña debe contener al menos un símbolo (ej: @, #, !)'),
-
-  // Validar que al menos uno de los dos alias llegó con valor
-  body('passwordnuevo').custom((value, { req }) => {
-    const nueva = value || req.body['contraseñaNueva'];
-    if (!nueva || nueva.trim() === '') {
-      throw new Error('La nueva contraseña es obligatoria');
-    }
-    return true;
-  }),
-
-  // Confirmación — obligatoria y debe coincidir con la nueva contraseña
+  // Confirmación — verifica que la nueva contraseña llegó y que coincide
   body('confirmarPassword')
     .notEmpty().withMessage('Debes confirmar la nueva contraseña')
     .custom((value, { req }) => {
       const nueva = req.body.passwordnuevo || req.body['contraseñaNueva'];
+      if (!nueva || nueva.trim() === '') {
+        throw new Error('La nueva contraseña es obligatoria');
+      }
       if (value !== nueva) {
         throw new Error('Las contraseñas no coinciden');
       }
