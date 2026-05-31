@@ -52,7 +52,7 @@ export const listarEstudiantes = async (req, res) => {
     }
 
     const usuarios = await Estudiante.find(filtro)
-      .select('nombre apellido email cedula carrera semestre rol fotoPerfil estado +confirmEmail')
+      .select('nombre apellido email cedula carrera semestre rol fotoPerfil +estado +confirmEmail')
       .sort({ apellido: 1, nombre: 1 })
       .lean();
 
