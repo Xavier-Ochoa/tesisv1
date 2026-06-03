@@ -70,15 +70,29 @@ export const validarRegistro = [
       return true;
     }),
 
-  // Acepta tanto 'contraseña' como 'password' en el body
-  body(['contraseña', 'password'])
-    .optional({ checkFalsy: false })
-    .notEmpty().withMessage('La contraseña es obligatoria')
-    .isLength({ min: 8, max: 64 }).withMessage('La contraseña debe tener entre 8 y 64 caracteres')
-    .matches(/[A-Z]/).withMessage('La contraseña debe contener al menos una letra mayúscula')
-    .matches(/[a-z]/).withMessage('La contraseña debe contener al menos una letra minúscula')
-    .matches(/[0-9]/).withMessage('La contraseña debe contener al menos un número')
-    .matches(/[^A-Za-z0-9]/).withMessage('La contraseña debe contener al menos un símbolo (ej: @, #, !)'),
+  // Acepta tanto 'contraseña' como 'password' en el body (OR real)
+  body('contraseña').custom((value, { req }) => {
+    const password = value || req.body.password;
+    if (!password || password.trim() === '') {
+      throw new Error('La contraseña es obligatoria');
+    }
+    if (password.length < 8 || password.length > 64) {
+      throw new Error('La contraseña debe tener entre 8 y 64 caracteres');
+    }
+    if (!/[A-Z]/.test(password)) {
+      throw new Error('La contraseña debe contener al menos una letra mayúscula');
+    }
+    if (!/[a-z]/.test(password)) {
+      throw new Error('La contraseña debe contener al menos una letra minúscula');
+    }
+    if (!/[0-9]/.test(password)) {
+      throw new Error('La contraseña debe contener al menos un número');
+    }
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      throw new Error('La contraseña debe contener al menos un símbolo (ej: @, #, !)');
+    }
+    return true;
+  }),
 
   body('rol')
     .optional()
