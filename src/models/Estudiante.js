@@ -52,7 +52,7 @@ const usuarioSchema = new Schema(
       type: String,
       enum: {
         values: ['estudiante', 'docente', 'admin'],
-        message: 'El rol debe ser "estudiante" o "docente"',
+        message: 'El rol debe ser "estudiante", "docente" o "admin"',
       },
       default: 'estudiante',
     },
