@@ -180,7 +180,7 @@ export const rechazarProyecto = async (req, res) => {
     if (!proyecto.enviarAlAdmin) {
       return res.status(403).json({ success: false, message: 'Los proyectos no enviados al admin no son accesibles desde el panel de administración' });
     }
-    if (proyecto.estado === 'rechazado') return res.status(400).json({ success: false, message: 'El proyecto ya está rechazado' });
+    if (proyecto.estado === 'rechazado') return res.status(400).json({ success: false, message: 'El proyecto ya se encuentra rechazado y no puede volver a rechazarse' });
     proyecto.estado        = 'rechazado';
     proyecto.motivoRechazo = motivo || '';
     await proyecto.save();
