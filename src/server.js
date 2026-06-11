@@ -31,6 +31,7 @@ app.use(
   cors({
     origin: [
       'https://poliexpo-esfot.vercel.app',
+      'http://localhost',
       'http://localhost:4200',
       'http://localhost:3000',
       'http://127.0.0.1:5500',
