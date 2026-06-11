@@ -32,6 +32,8 @@ app.use(
     origin: [
       'https://poliexpo-esfot.vercel.app',
       'http://localhost',
+      'https://localhost',
+      'capacitor://localhost',
       'http://localhost:4200',
       'http://localhost:3000',
       'http://127.0.0.1:5500',
