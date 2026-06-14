@@ -109,8 +109,8 @@ export const validarActualizarPerfil = [
   body('carrera')
     .optional()
     .trim()
-    .notEmpty().withMessage('La carrera no puede ser un valor vacío')
     .isIn([
+      '',
       'Agua y Saneamiento Ambiental',
       'Desarrollo de Software',
       'Electromecánica',
@@ -126,7 +126,8 @@ export const validarActualizarPerfil = [
   body('telefono')
     .optional()
     .trim()
-    .matches(/^\d{10}$/).withMessage('El teléfono debe tener exactamente 10 dígitos'),
+    .custom((value) => value === '' || /^\d{10}$/.test(value))
+    .withMessage('El teléfono debe tener exactamente 10 dígitos'),
 
   body('descripcion')
     .optional()
@@ -135,8 +136,7 @@ export const validarActualizarPerfil = [
 
   body('github')
     .optional()
-    .trim()
-    .notEmpty().withMessage('El usuario de GitHub no puede ser un valor vacío'),
+    .trim(),
 
   // Campos bloqueados — devuelve error claro si se intenta modificar
   body('nombre')
