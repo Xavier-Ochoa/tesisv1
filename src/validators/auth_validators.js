@@ -98,6 +98,18 @@ export const validarRegistro = [
     .optional()
     .trim()
     .isIn(['estudiante', 'docente']).withMessage('El rol debe ser "estudiante" o "docente"'),
+
+  body('carrera')
+    .trim()
+    .notEmpty().withMessage('La carrera es obligatoria')
+    .isIn([
+      'Agua y Saneamiento Ambiental',
+      'Desarrollo de Software',
+      'Electromecánica',
+      'Redes y Telecomunicaciones',
+      'Procesamiento de Alimentos',
+      'Procesamiento Industrial de la Madera',
+    ]).withMessage('La carrera no es válida. Las opciones permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento Industrial de la Madera'),
 ];
 
 /**
@@ -109,8 +121,8 @@ export const validarActualizarPerfil = [
   body('carrera')
     .optional()
     .trim()
+    .notEmpty().withMessage('La carrera no puede quedar vacía')
     .isIn([
-      '',
       'Agua y Saneamiento Ambiental',
       'Desarrollo de Software',
       'Electromecánica',
@@ -121,13 +133,12 @@ export const validarActualizarPerfil = [
 
   body('semestre')
     .optional()
-    .isInt({ min: 1, max: 5 }).withMessage('El semestre debe ser un número entre 1 y 5'),
+    .isInt({ min: 0, max: 5 }).withMessage('El semestre debe ser un número entre 0 y 5'),
 
   body('telefono')
     .optional()
     .trim()
-    .custom((value) => value === '' || /^\d{10}$/.test(value))
-    .withMessage('El teléfono debe tener exactamente 10 dígitos'),
+    .matches(/^\d{10}$/).withMessage('El teléfono debe tener exactamente 10 dígitos'),
 
   body('descripcion')
     .optional()
@@ -136,7 +147,8 @@ export const validarActualizarPerfil = [
 
   body('github')
     .optional()
-    .trim(),
+    .trim()
+    .notEmpty().withMessage('El usuario de GitHub no puede ser un valor vacío'),
 
   // Campos bloqueados — devuelve error claro si se intenta modificar
   body('nombre')
