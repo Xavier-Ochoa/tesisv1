@@ -13,12 +13,6 @@ export const getEstadisticasAdmin = async (req, res) => {
     ]);
     // Ejemplo salida: [{ _id: 'academico', total: 12 }, { _id: 'extracurricular', total: 8 }]
 
-    // ── 2) Proyectos agrupados por carrera (ordenados desc) ──
-    const porCarrera = await Proyecto.aggregate([
-      { $group: { _id: '$carrera', total: { $sum: 1 } } },
-      { $sort: { total: -1 } }
-    ]);
-
     // ── 3) Proyectos agrupados por estado ──
     const porEstado = await Proyecto.aggregate([
       { $group: { _id: '$estado', total: { $sum: 1 } } }
@@ -71,7 +65,6 @@ export const getEstadisticasAdmin = async (req, res) => {
       success: true,
       data: {
         porCategoria,
-        porCarrera,
         porEstado,
         donacionesPorMes,
         topProyectos,
