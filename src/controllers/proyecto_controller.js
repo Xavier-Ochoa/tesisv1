@@ -195,7 +195,7 @@ export const actualizarProyecto = async (req, res) => {
     const camposPermitidos = [
       'titulo', 'descripcion', 'categoria', 'lineaInvestigacion',
       'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio',
-      'enlaceDemo', 'tags',
+      'enlaceDemo', 'palabrasClave',
     ];
     const datosActualizacion = {};
     for (const campo of camposPermitidos) {
@@ -419,7 +419,7 @@ export const crearNuevaVersion = async (req, res) => {
     if (errorVersionable) return res.status(403).json({ success: false, message: errorVersionable });
 
     const nuevaVersion = await siguienteVersion(versionActual.proyecto_id);
-    const camposPermitidos = ['titulo', 'descripcion', 'categoria', 'lineaInvestigacion', 'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio', 'enlaceDemo', 'tags'];
+    const camposPermitidos = ['titulo', 'descripcion', 'categoria', 'lineaInvestigacion', 'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio', 'enlaceDemo', 'palabrasClave'];
 
     const datosNuevaVersion = {
       proyecto_id:       versionActual.proyecto_id,
@@ -441,7 +441,7 @@ export const crearNuevaVersion = async (req, res) => {
       tecnologias:       [...(versionActual.tecnologias ?? [])],
       repositorio:       versionActual.repositorio,
       enlaceDemo:        versionActual.enlaceDemo,
-      tags:              [...(versionActual.tags ?? [])],
+      palabrasClave:     [...(versionActual.palabrasClave ?? [])],
       imagenes:          [...(versionActual.imagenes ?? [])],
       imagenesID:        [...(versionActual.imagenesID ?? [])],
       // Los documentos NO se heredan automáticamente; se suben aparte si se desea
@@ -762,7 +762,7 @@ export const actualizarProyectoColaborador = async (req, res) => {
     if (!esColaborador) return res.status(403).json({ success: false, message: 'No eres colaborador de este proyecto' });
     const errorRegla = validarEditable(proyecto);
     if (errorRegla) return res.status(403).json({ success: false, message: errorRegla });
-    const camposPermitidos = ['descripcion', 'tecnologias', 'repositorio', 'enlaceDemo', 'tags', 'lineaInvestigacion'];
+    const camposPermitidos = ['descripcion', 'tecnologias', 'repositorio', 'enlaceDemo', 'palabrasClave', 'lineaInvestigacion'];
     const datosActualizacion = {};
     for (const campo of camposPermitidos) {
       if (req.body[campo] !== undefined) datosActualizacion[campo] = req.body[campo];
