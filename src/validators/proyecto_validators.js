@@ -46,10 +46,6 @@ export const validarCrearProyecto = [
   body('descripcion').trim().notEmpty().withMessage('La descripción es obligatoria').isLength({ min: 20, max: 2000 }).withMessage('La descripción debe tener entre 20 y 2000 caracteres'),
   body('categoria').notEmpty().withMessage('La categoría es obligatoria').isIn(['academico', 'extracurricular']).withMessage('La categoría debe ser "academico" o "extracurricular"'),
   body('fechaInicio').notEmpty().withMessage('La fecha de inicio es obligatoria').isISO8601().withMessage('La fecha de inicio debe tener formato válido (YYYY-MM-DD)'),
-  body('carrera').trim().notEmpty().withMessage('La carrera es obligatoria').isIn([
-    'Agua y Saneamiento Ambiental', 'Desarrollo de Software', 'Electromecánica',
-    'Redes y Telecomunicaciones', 'Procesamiento de Alimentos', 'Procesamiento Industrial de la Madera',
-  ]).withMessage('La carrera no es válida'),
   body('lineaInvestigacion').optional().trim().isLength({ max: 200 }).withMessage('La línea de investigación no puede exceder 200 caracteres'),
   body('fechaFin').optional().isISO8601().withMessage('La fecha de fin debe tener formato válido').custom((fechaFin, { req }) => {
     if (req.body.fechaInicio && fechaFin && new Date(fechaFin) < new Date(req.body.fechaInicio)) throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
@@ -69,10 +65,6 @@ export const validarActualizarProyecto = [
   body('titulo').optional().trim().isLength({ min: 5, max: 200 }).withMessage('El título debe tener entre 5 y 200 caracteres'),
   body('descripcion').optional().trim().isLength({ min: 20, max: 2000 }).withMessage('La descripción debe tener entre 20 y 2000 caracteres'),
   body('categoria').optional().isIn(['academico', 'extracurricular']).withMessage('La categoría debe ser "academico" o "extracurricular"'),
-  body('carrera').optional().trim().isIn([
-    'Agua y Saneamiento Ambiental', 'Desarrollo de Software', 'Electromecánica',
-    'Redes y Telecomunicaciones', 'Procesamiento de Alimentos', 'Procesamiento Industrial de la Madera',
-  ]).withMessage('La carrera no es válida'),
   body('lineaInvestigacion').optional().trim().isLength({ max: 200 }).withMessage('La línea de investigación no puede exceder 200 caracteres'),
   body('fechaInicio').optional().isISO8601().withMessage('La fecha de inicio debe tener formato válido'),
   body('fechaFin').optional().isISO8601().withMessage('La fecha de fin debe tener formato válido'),
