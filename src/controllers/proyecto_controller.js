@@ -10,10 +10,16 @@ import { subirPDFGridFS, eliminarPDFGridFS, descargarPDFGridFS } from '../helper
 // ─────────────────────────────────────────────────────────────────────────────
 export const listarProyectos = async (req, res) => {
   try {
-    const { page = 1, limit = 10, categoria, q, sort = '-createdAt' } = req.query;
+    const { page = 1, limit = 10, categoria, q, carrera, sort = '-createdAt' } = req.query;
     const filtro = { estado: 'aprobado', publico: true, activo: true, esUltimaVersion: true };
     if (categoria) filtro.categoria = categoria;
     if (q?.trim()) filtro.$text     = { $search: q.trim() };
+
+    if (carrera) {
+      const autores = await Estudiante.find({ carrera: decodeURIComponent(carrera) }, { _id: 1 }).lean();
+      const autoresIds = autores.map(a => a._id);
+      filtro.autor = { $in: autoresIds };
+    }
 
     const [proyectos, total] = await Promise.all([
       Proyecto.find(filtro)
