@@ -36,12 +36,12 @@ export const listarEstudiantes = async (req, res) => {
     // Filtro por semestre (búsqueda exacta)
     if (semestre) {
       const semestreNumero = parseInt(semestre);
-      if (semestreNumero >= 0 && semestreNumero <= 5) {
+      if (semestreNumero >= 1 && semestreNumero <= 5) {
         filtro.semestre = semestreNumero;
       } else {
         return res.status(400).json({
           success: false,
-          message: 'El semestre debe ser un número entre 0 y 5',
+          message: 'El semestre debe ser un número entre 1 y 5',
         });
       }
     }
