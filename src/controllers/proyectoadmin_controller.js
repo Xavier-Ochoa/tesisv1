@@ -61,7 +61,7 @@ export const actualizarProyectoAdmin = async (req, res) => {
     if (!proyecto.enviarAlAdmin) {
       return res.status(403).json({ success: false, message: 'Los proyectos no enviados al admin no son accesibles desde el panel de administración' });
     }
-    const camposPermitidos = ['titulo', 'descripcion', 'categoria', 'lineaInvestigacion', 'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio', 'enlaceDemo', 'tags'];
+    const camposPermitidos = ['titulo', 'descripcion', 'categoria', 'lineaInvestigacion', 'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio', 'enlaceDemo', 'palabrasClave'];
     const datosActualizacion = {};
     for (const campo of camposPermitidos) {
       if (req.body[campo] !== undefined) datosActualizacion[campo] = req.body[campo];
