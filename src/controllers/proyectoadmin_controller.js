@@ -8,11 +8,10 @@ import { eliminarPDFGridFS } from '../helpers/gridfs.js';
 // ─────────────────────────────────────────────────────────────────────────────
 export const listarTodosProyectos = async (req, res) => {
   try {
-    const { page = 1, limit = 10, estado, categoria, carrera, autor, q, sort = '-createdAt' } = req.query;
+    const { page = 1, limit = 10, estado, categoria, autor, q, sort = '-createdAt' } = req.query;
     const filtro = { enviarAlAdmin: true, activo: true, esUltimaVersion: true };
     if (estado)    filtro.estado    = estado;
     if (categoria) filtro.categoria = categoria;
-    if (carrera)   filtro.carrera   = decodeURIComponent(carrera);
     if (autor)     filtro.autor     = autor;
     if (q?.trim()) filtro.$text     = { $search: q.trim() };
 
@@ -62,7 +61,7 @@ export const actualizarProyectoAdmin = async (req, res) => {
     if (!proyecto.enviarAlAdmin) {
       return res.status(403).json({ success: false, message: 'Los proyectos no enviados al admin no son accesibles desde el panel de administración' });
     }
-    const camposPermitidos = ['titulo', 'descripcion', 'categoria', 'lineaInvestigacion', 'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio', 'enlaceDemo', 'tags', 'carrera'];
+    const camposPermitidos = ['titulo', 'descripcion', 'categoria', 'lineaInvestigacion', 'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio', 'enlaceDemo', 'tags'];
     const datosActualizacion = {};
     for (const campo of camposPermitidos) {
       if (req.body[campo] !== undefined) datosActualizacion[campo] = req.body[campo];
