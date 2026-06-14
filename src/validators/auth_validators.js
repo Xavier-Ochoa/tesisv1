@@ -121,7 +121,7 @@ export const validarActualizarPerfil = [
 
   body('semestre')
     .optional()
-    .isInt({ min: 0, max: 5 }).withMessage('El semestre debe ser un número entre 0 y 5'),
+    .isInt({ min: 1, max: 5 }).withMessage('El semestre debe ser un número entre 1 y 5'),
 
   body('telefono')
     .optional()
