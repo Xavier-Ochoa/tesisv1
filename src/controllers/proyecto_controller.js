@@ -539,26 +539,6 @@ export const proyectosDestacados = async (req, res) => {
   }
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// BUSCAR — landing
-// ─────────────────────────────────────────────────────────────────────────────
-export const buscarProyectos = async (req, res) => {
-  try {
-    const { q, categoria, page = 1, limit = 10 } = req.query;
-    if (!q?.trim()) return res.status(400).json({ success: false, message: 'Proporciona un término de búsqueda' });
-    const filtro = { estado: 'aprobado', publico: true, activo: true, esUltimaVersion: true, $text: { $search: q.trim() } };
-    if (categoria) filtro.categoria = categoria;
-    const [proyectos, total] = await Promise.all([
-      Proyecto.find(filtro).populate('autor', 'nombre apellido carrera')
-        .limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
-      Proyecto.countDocuments(filtro)
-    ]);
-    res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / Number(limit)), limit: parseInt(limit) } });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al buscar proyectos', error: error.message });
-  }
-};
-
 export const listarProyectosPorCategoria = async (req, res) => {
   try {
     const { tipo } = req.params;
@@ -570,26 +550,6 @@ export const listarProyectosPorCategoria = async (req, res) => {
       Proyecto.countDocuments(filtro),
     ]);
     res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / limit) } });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
-  }
-};
-
-export const listarProyectosPorCarrera = async (req, res) => {
-  try {
-    const { carrera } = req.params;
-    const { page = 1, limit = 10 } = req.query;
-
-    // El proyecto ya no tiene campo 'carrera'; se filtra por la carrera del AUTOR
-    const autores = await Estudiante.find({ carrera: decodeURIComponent(carrera) }, { _id: 1 }).lean();
-    const autoresIds = autores.map(a => a._id);
-
-    const filtro = { autor: { $in: autoresIds }, estado: 'aprobado', publico: true, activo: true, esUltimaVersion: true };
-    const [proyectos, total] = await Promise.all([
-      Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt').limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
-      Proyecto.countDocuments(filtro)
-    ]);
-    res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / Number(limit)), limit: parseInt(limit) } });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
   }
