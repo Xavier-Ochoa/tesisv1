@@ -83,22 +83,6 @@ const proyectoSchema = new Schema(
     enlaceDemo: { type: String, trim: true },
     tags: [{ type: String, trim: true, lowercase: true }],
 
-    carrera: {
-      type: String,
-      required: true,
-      enum: {
-        values: [
-          'Agua y Saneamiento Ambiental',
-          'Desarrollo de Software',
-          'Electromecánica',
-          'Redes y Telecomunicaciones',
-          'Procesamiento de Alimentos',
-          'Procesamiento Industrial de la Madera',
-        ],
-        message: 'La carrera "{VALUE}" no es válida.',
-      },
-    },
-
     vistas: { type: Number, default: 0 },
     likes: [{ type: Schema.Types.ObjectId, ref: 'Usuario' }],
     comentarios: [{
@@ -113,7 +97,6 @@ const proyectoSchema = new Schema(
 proyectoSchema.index({ titulo: 'text', descripcion: 'text', tags: 'text' });
 proyectoSchema.index({ categoria: 1, estado: 1 });
 proyectoSchema.index({ autor: 1 });
-proyectoSchema.index({ carrera: 1 });
 proyectoSchema.index({ proyecto_id: 1, version: 1 }, { unique: true, sparse: true });
 proyectoSchema.index({ proyecto_id: 1, esUltimaVersion: 1 });
 
