@@ -54,7 +54,7 @@ export const validarCrearProyecto = [
   body('tecnologias').optional().customSanitizer(convertirStringAArray).custom((v) => validarElementosArray(v, 'tecnologías')),
   validarURL('repositorio'),
   validarURL('enlaceDemo'),
-  body('tags').optional().customSanitizer(convertirStringAArray).custom((v) => validarElementosArray(v, 'tags')),
+  body('palabrasClave').optional().customSanitizer(convertirStringAArray).custom((v) => validarElementosArray(v, 'palabras clave')),
   validarEnviarAlAdmin,
   validarImagenesOpcionales,
 ];
@@ -71,7 +71,7 @@ export const validarActualizarProyecto = [
   body('tecnologias').optional().customSanitizer(convertirStringAArray).custom((v) => validarElementosArray(v, 'tecnologías')),
   validarURL('repositorio'),
   validarURL('enlaceDemo'),
-  body('tags').optional().customSanitizer(convertirStringAArray).custom((v) => validarElementosArray(v, 'tags')),
+  body('palabrasClave').optional().customSanitizer(convertirStringAArray).custom((v) => validarElementosArray(v, 'palabras clave')),
   validarEnviarAlAdmin,
   validarImagenesOpcionales,
 ];
