@@ -97,7 +97,9 @@ const usuarioSchema = new Schema(
     },
 
     // ─────────────────────────────────────────────
-    // CAMPOS DE PERFIL — opcionales (editar perfil)
+    // CAMPOS DE PERFIL — modificables desde "Editar Perfil"
+    // (carrera es obligatoria desde el registro, pero modificable después;
+    //  el resto son opcionales)
     // ─────────────────────────────────────────────
     fotoPerfil: {
       url: {
@@ -112,10 +114,9 @@ const usuarioSchema = new Schema(
     carrera: {
       type: String,
       trim: true,
-      default: null,
+      required: [true, 'La carrera es obligatoria'],
       enum: {
         values: [
-          null,
           'Agua y Saneamiento Ambiental',
           'Desarrollo de Software',
           'Electromecánica',
@@ -123,13 +124,13 @@ const usuarioSchema = new Schema(
           'Procesamiento de Alimentos',
           'Procesamiento Industrial de la Madera',
         ],
-        message: 'La carrera "{VALUE}" no es válida. Las carreras permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento Industrial de la madera',
+        message: 'La carrera "{VALUE}" no es válida. Las carreras permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento Industrial de la Madera',
       },
     },
     // Solo aplica para estudiantes
     semestre: {
       type: Number,
-      min: [1, 'El semestre debe ser al menos 1'],
+      min: [0, 'El semestre debe ser al menos 0'],
       max: [5, 'El semestre no puede ser mayor a 5'],
       default: null,
     },
