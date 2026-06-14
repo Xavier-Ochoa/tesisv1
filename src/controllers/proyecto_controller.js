@@ -10,10 +10,9 @@ import { subirPDFGridFS, eliminarPDFGridFS, descargarPDFGridFS } from '../helper
 // ─────────────────────────────────────────────────────────────────────────────
 export const listarProyectos = async (req, res) => {
   try {
-    const { page = 1, limit = 10, categoria, carrera, q, sort = '-createdAt' } = req.query;
+    const { page = 1, limit = 10, categoria, q, sort = '-createdAt' } = req.query;
     const filtro = { estado: 'aprobado', publico: true, activo: true, esUltimaVersion: true };
     if (categoria) filtro.categoria = categoria;
-    if (carrera)   filtro.carrera   = decodeURIComponent(carrera);
     if (q?.trim()) filtro.$text     = { $search: q.trim() };
 
     const [proyectos, total] = await Promise.all([
@@ -121,7 +120,13 @@ export const crearProyecto = async (req, res) => {
   try {
     const usuarioId = req.estudianteBDD._id;
     req.body = req.body ?? {};
-    const proyectoIdGenerado = await generarProyectoId(req.body.carrera);
+
+    // El prefijo del proyecto_id se basa en la carrera del AUTOR (no del proyecto)
+    const carreraAutor = req.estudianteBDD.carrera;
+    if (!carreraAutor) {
+      return res.status(400).json({ success: false, message: 'No se puede generar el proyecto_id: el autor no tiene una carrera asignada en su perfil' });
+    }
+    const proyectoIdGenerado = await generarProyectoId(carreraAutor);
 
     const enviarAlAdmin = req.body.enviarAlAdmin === true || req.body.enviarAlAdmin === 'true';
 
@@ -190,7 +195,7 @@ export const actualizarProyecto = async (req, res) => {
     const camposPermitidos = [
       'titulo', 'descripcion', 'categoria', 'lineaInvestigacion',
       'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio',
-      'enlaceDemo', 'tags', 'carrera',
+      'enlaceDemo', 'tags',
     ];
     const datosActualizacion = {};
     for (const campo of camposPermitidos) {
@@ -414,7 +419,7 @@ export const crearNuevaVersion = async (req, res) => {
     if (errorVersionable) return res.status(403).json({ success: false, message: errorVersionable });
 
     const nuevaVersion = await siguienteVersion(versionActual.proyecto_id);
-    const camposPermitidos = ['titulo', 'descripcion', 'categoria', 'lineaInvestigacion', 'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio', 'enlaceDemo', 'tags', 'carrera'];
+    const camposPermitidos = ['titulo', 'descripcion', 'categoria', 'lineaInvestigacion', 'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio', 'enlaceDemo', 'tags'];
 
     const datosNuevaVersion = {
       proyecto_id:       versionActual.proyecto_id,
@@ -437,7 +442,6 @@ export const crearNuevaVersion = async (req, res) => {
       repositorio:       versionActual.repositorio,
       enlaceDemo:        versionActual.enlaceDemo,
       tags:              [...(versionActual.tags ?? [])],
-      carrera:           versionActual.carrera,
       imagenes:          [...(versionActual.imagenes ?? [])],
       imagenesID:        [...(versionActual.imagenesID ?? [])],
       // Los documentos NO se heredan automáticamente; se suben aparte si se desea
@@ -534,11 +538,10 @@ export const proyectosDestacados = async (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 export const buscarProyectos = async (req, res) => {
   try {
-    const { q, categoria, carrera, page = 1, limit = 10 } = req.query;
+    const { q, categoria, page = 1, limit = 10 } = req.query;
     if (!q?.trim()) return res.status(400).json({ success: false, message: 'Proporciona un término de búsqueda' });
     const filtro = { estado: 'aprobado', publico: true, activo: true, esUltimaVersion: true, $text: { $search: q.trim() } };
     if (categoria) filtro.categoria = categoria;
-    if (carrera)   filtro.carrera   = decodeURIComponent(carrera);
     const [proyectos, total] = await Promise.all([
       Proyecto.find(filtro).populate('autor', 'nombre apellido carrera')
         .limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
@@ -570,7 +573,12 @@ export const listarProyectosPorCarrera = async (req, res) => {
   try {
     const { carrera } = req.params;
     const { page = 1, limit = 10 } = req.query;
-    const filtro = { carrera: decodeURIComponent(carrera), estado: 'aprobado', publico: true, activo: true, esUltimaVersion: true };
+
+    // El proyecto ya no tiene campo 'carrera'; se filtra por la carrera del AUTOR
+    const autores = await Estudiante.find({ carrera: decodeURIComponent(carrera) }, { _id: 1 }).lean();
+    const autoresIds = autores.map(a => a._id);
+
+    const filtro = { autor: { $in: autoresIds }, estado: 'aprobado', publico: true, activo: true, esUltimaVersion: true };
     const [proyectos, total] = await Promise.all([
       Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt').limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
       Proyecto.countDocuments(filtro)
