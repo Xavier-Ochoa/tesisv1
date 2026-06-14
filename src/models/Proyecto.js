@@ -81,7 +81,7 @@ const proyectoSchema = new Schema(
     tecnologias: [{ type: String, trim: true }],
     repositorio: { type: String, trim: true },
     enlaceDemo: { type: String, trim: true },
-    tags: [{ type: String, trim: true, lowercase: true }],
+    palabrasClave: [{ type: String, trim: true, lowercase: true }],
 
     vistas: { type: Number, default: 0 },
     likes: [{ type: Schema.Types.ObjectId, ref: 'Usuario' }],
@@ -94,7 +94,7 @@ const proyectoSchema = new Schema(
   { timestamps: true }
 );
 
-proyectoSchema.index({ titulo: 'text', descripcion: 'text', tags: 'text' });
+proyectoSchema.index({ titulo: 'text', descripcion: 'text', palabrasClave: 'text' });
 proyectoSchema.index({ categoria: 1, estado: 1 });
 proyectoSchema.index({ autor: 1 });
 proyectoSchema.index({ proyecto_id: 1, version: 1 }, { unique: true, sparse: true });
