@@ -11,13 +11,11 @@ import {
   historialVersiones,
   listarProyectosPorCategoria,
   listarProyectosPorEstudiante,
-  buscarProyectos,
   agregarLike,
   quitarLike,
   agregarComentario,
   eliminarComentario,
   proyectosDestacados,
-  listarProyectosPorCarrera,
   agregarColaborador,
   eliminarColaborador,
   listarColaboradores,
@@ -44,9 +42,7 @@ const router = Router();
 // ── LANDING (públicas) ────────────────────────────────────────────────────────
 router.get('/',                      listarProyectos);
 router.get('/destacados',            proyectosDestacados);
-router.get('/buscar',                buscarProyectos);
 router.get('/categoria/:tipo',       listarProyectosPorCategoria);
-router.get('/carrera/:carrera',      listarProyectosPorCarrera);
 router.get('/estudiante/:id',        listarProyectosPorEstudiante);
 
 // ── MIS PROYECTOS ─────────────────────────────────────────────────────────────
