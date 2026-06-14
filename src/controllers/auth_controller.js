@@ -22,7 +22,7 @@ export const fetchQuoteController = async (req, res) => {
 // ===== REGISTRO — HU-001 =====
 /**
  * Campos obligatorios que acepta el endpoint:
- *   nombre, apellido, cedula, correoInstitucional (o email), contraseña (o password), rol
+ *   nombre, apellido, cedula, correoInstitucional (o email), contraseña (o password), carrera, rol (opcional)
  *
  * El frontend puede enviar 'correoInstitucional' o 'email' — ambos se mapean a email internamente.
  * El frontend puede enviar 'contraseña' o 'password'       — ambos se mapean a password internamente.
@@ -41,19 +41,21 @@ const registro = async (req, res) => {
             contraseña,            // alias aceptado desde el frontend
             password: passwordDirecto, // también se acepta 'password' directamente
             rol,
+            carrera,
         } = req.body;
 
         // Mapear alias → campos internos
         const email    = correoInstitucional || emailDirecto;
         const password = contraseña         || passwordDirecto;
 
-        // Validar que los 6 campos obligatorios estén presentes
+        // Validar que los campos obligatorios estén presentes
         const faltantes = [];
         if (!nombre)   faltantes.push('nombre');
         if (!apellido) faltantes.push('apellido');
         if (!cedula)   faltantes.push('cedula');
         if (!email)    faltantes.push('correoInstitucional');
         if (!password) faltantes.push('contraseña');
+        if (!carrera)  faltantes.push('carrera');
 
         if (faltantes.length > 0) {
             return res.status(400).json({
@@ -71,14 +73,15 @@ const registro = async (req, res) => {
         const rolesPermitidos = ['estudiante', 'docente'];
         const rolAsignado = rol && rolesPermitidos.includes(rol) ? rol : 'estudiante';
 
-        // Construir nuevo usuario solo con los campos de registro
-        // Los campos de perfil (carrera, semestre, telefono, etc.) quedan en null por defecto
+        // Construir nuevo usuario con los campos de registro (incluye carrera, obligatoria)
+        // El resto de campos de perfil (semestre, telefono, etc.) quedan en null por defecto
         const nuevoUsuario = new Estudiante({
             nombre,
             apellido,
             cedula,
             email: email.toLowerCase(),
             rol: rolAsignado,
+            carrera,
             // Campos automáticos — valores por defecto del modelo:
             // estado: 'activo', fechaRegistro: now, confirmEmail: false
         });
@@ -140,7 +143,7 @@ const confirmarMail = async (req, res) => {
         const { token } = req.params;
         // +token, +confirmEmail y +tokenExpira necesarios porque tienen select:false en el modelo
         const usuarioBDD = await Estudiante.findOne({ token }).select('+token +confirmEmail +tokenExpira');
-        if (!usuarioBDD) return res.status(404).json({ msg: 'Código de activación inválido o cuenta ya confirmada' });
+        if (!usuarioBDD) return res.status(404).json({ msg: 'Token inválido o cuenta ya confirmada' });
 
         // Verificar que el token no haya vencido (24 horas de vigencia)
         if (!usuarioBDD.tokenExpira || usuarioBDD.tokenExpira < new Date()) {
@@ -195,7 +198,7 @@ const comprobarTokenPasword = async (req, res) => {
         const { token } = req.params;
         // +token y +tokenExpira necesarios porque tienen select:false en el modelo
         const usuarioBDD = await Estudiante.findOne({ token }).select('+token +tokenExpira');
-        if (usuarioBDD?.token !== token) return res.status(404).json({ msg: 'Código de restablecimiento inválido o expirado' });
+        if (usuarioBDD?.token !== token) return res.status(404).json({ msg: 'Token inválido o expirado' });
 
         // Verificar que el token no haya vencido (1 hora de vigencia)
         if (!usuarioBDD.tokenExpira || usuarioBDD.tokenExpira < new Date()) {
@@ -205,7 +208,7 @@ const comprobarTokenPasword = async (req, res) => {
             return res.status(400).json({ msg: 'El enlace ha expirado. Solicita uno nuevo.' });
         }
 
-        res.status(200).json({ msg: 'Código confirmado. Ya puedes crear tu nueva contraseña.' });
+        res.status(200).json({ msg: 'Token confirmado. Ya puedes crear tu nueva contraseña.' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
@@ -221,7 +224,7 @@ const crearNuevoPassword = async (req, res) => {
         // Las validaciones de formato y confirmación ya las hizo validarNuevoPassword
         // +token y +tokenExpira necesarios porque tienen select:false en el modelo
         const usuarioBDD = await Estudiante.findOne({ token }).select('+token +tokenExpira');
-        if (!usuarioBDD) return res.status(404).json({ msg: 'Código de restablecimiento inválido o expirado' });
+        if (!usuarioBDD) return res.status(404).json({ msg: 'Token inválido o expirado' });
 
         // Verificar que el token no haya vencido (1 hora de vigencia)
         if (!usuarioBDD.tokenExpira || usuarioBDD.tokenExpira < new Date()) {
@@ -389,17 +392,14 @@ const actualizarPerfil = async (req, res) => {
             usuarioBDD.fotoPerfil = { url: secure_url, publicId: public_id };
         }
 
-        // Aplicar solo los campos de perfil permitidos.
-        // Si el campo no se envía (undefined) -> no se modifica.
-        // Si se envía vacío ('' o null) -> se limpia el campo (queda en null).
-        // Si se envía con valor -> se actualiza.
+        // Aplicar solo los campos de perfil permitidos
         const { carrera, semestre, telefono, descripcion, github } = req.body;
 
-        if (carrera !== undefined)     usuarioBDD.carrera     = carrera === '' ? null : carrera;
-        if (semestre !== undefined)    usuarioBDD.semestre    = semestre === '' || semestre === null ? null : semestre;
-        if (telefono !== undefined)    usuarioBDD.telefono    = telefono === '' ? null : telefono;
-        if (descripcion !== undefined) usuarioBDD.descripcion = descripcion === '' ? null : descripcion;
-        if (github !== undefined)      usuarioBDD.github      = github === '' ? null : github;
+        usuarioBDD.carrera     = carrera     ?? usuarioBDD.carrera;
+        usuarioBDD.semestre    = semestre    ?? usuarioBDD.semestre;
+        usuarioBDD.telefono    = telefono    ?? usuarioBDD.telefono;
+        usuarioBDD.descripcion = descripcion ?? usuarioBDD.descripcion;
+        usuarioBDD.github      = github      ?? usuarioBDD.github;
 
         await usuarioBDD.save();
 
@@ -541,7 +541,7 @@ const reenviarConfirmacion = async (req, res) => {
             return res.status(500).json({ msg: 'No se pudo enviar el correo. Intenta más tarde.' });
         }
 
-        res.status(200).json({ msg: 'Código de activación reenviado. Revisa tu correo institucional.' });
+        res.status(200).json({ msg: 'Token de confirmación reenviado. Revisa tu correo institucional.' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
