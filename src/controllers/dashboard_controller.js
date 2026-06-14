@@ -18,6 +18,22 @@ export const getEstadisticasAdmin = async (req, res) => {
       { $group: { _id: '$estado', total: { $sum: 1 } } }
     ]);
 
+    // ── 2) Proyectos agrupados por carrera del AUTOR (ordenados desc) ──
+    // El proyecto ya no tiene campo 'carrera'; se obtiene desde el autor (colección 'usuarios')
+    const porCarrera = await Proyecto.aggregate([
+      {
+        $lookup: {
+          from: 'usuarios',
+          localField: 'autor',
+          foreignField: '_id',
+          as: 'autorInfo',
+        },
+      },
+      { $unwind: '$autorInfo' },
+      { $group: { _id: '$autorInfo.carrera', total: { $sum: 1 } } },
+      { $sort: { total: -1 } },
+    ]);
+
     // ── 4) Donaciones exitosas agrupadas por mes (último 12 meses) ──
     const hace12Meses = new Date();
     hace12Meses.setFullYear(hace12Meses.getFullYear() - 1);
@@ -65,6 +81,7 @@ export const getEstadisticasAdmin = async (req, res) => {
       success: true,
       data: {
         porCategoria,
+        porCarrera,
         porEstado,
         donacionesPorMes,
         topProyectos,
