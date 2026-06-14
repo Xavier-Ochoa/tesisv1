@@ -140,7 +140,7 @@ const confirmarMail = async (req, res) => {
         const { token } = req.params;
         // +token, +confirmEmail y +tokenExpira necesarios porque tienen select:false en el modelo
         const usuarioBDD = await Estudiante.findOne({ token }).select('+token +confirmEmail +tokenExpira');
-        if (!usuarioBDD) return res.status(404).json({ msg: 'Token inválido o cuenta ya confirmada' });
+        if (!usuarioBDD) return res.status(404).json({ msg: 'Código de activación inválido o cuenta ya confirmada' });
 
         // Verificar que el token no haya vencido (24 horas de vigencia)
         if (!usuarioBDD.tokenExpira || usuarioBDD.tokenExpira < new Date()) {
@@ -195,7 +195,7 @@ const comprobarTokenPasword = async (req, res) => {
         const { token } = req.params;
         // +token y +tokenExpira necesarios porque tienen select:false en el modelo
         const usuarioBDD = await Estudiante.findOne({ token }).select('+token +tokenExpira');
-        if (usuarioBDD?.token !== token) return res.status(404).json({ msg: 'Token inválido o expirado' });
+        if (usuarioBDD?.token !== token) return res.status(404).json({ msg: 'Código de restablecimiento inválido o expirado' });
 
         // Verificar que el token no haya vencido (1 hora de vigencia)
         if (!usuarioBDD.tokenExpira || usuarioBDD.tokenExpira < new Date()) {
@@ -205,7 +205,7 @@ const comprobarTokenPasword = async (req, res) => {
             return res.status(400).json({ msg: 'El enlace ha expirado. Solicita uno nuevo.' });
         }
 
-        res.status(200).json({ msg: 'Token confirmado. Ya puedes crear tu nueva contraseña.' });
+        res.status(200).json({ msg: 'Código confirmado. Ya puedes crear tu nueva contraseña.' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
@@ -221,7 +221,7 @@ const crearNuevoPassword = async (req, res) => {
         // Las validaciones de formato y confirmación ya las hizo validarNuevoPassword
         // +token y +tokenExpira necesarios porque tienen select:false en el modelo
         const usuarioBDD = await Estudiante.findOne({ token }).select('+token +tokenExpira');
-        if (!usuarioBDD) return res.status(404).json({ msg: 'Token inválido o expirado' });
+        if (!usuarioBDD) return res.status(404).json({ msg: 'Código de restablecimiento inválido o expirado' });
 
         // Verificar que el token no haya vencido (1 hora de vigencia)
         if (!usuarioBDD.tokenExpira || usuarioBDD.tokenExpira < new Date()) {
@@ -538,7 +538,7 @@ const reenviarConfirmacion = async (req, res) => {
             return res.status(500).json({ msg: 'No se pudo enviar el correo. Intenta más tarde.' });
         }
 
-        res.status(200).json({ msg: 'Token de confirmación reenviado. Revisa tu correo institucional.' });
+        res.status(200).json({ msg: 'Código de activación reenviado. Revisa tu correo institucional.' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
