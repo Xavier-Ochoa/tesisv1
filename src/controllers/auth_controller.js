@@ -389,14 +389,17 @@ const actualizarPerfil = async (req, res) => {
             usuarioBDD.fotoPerfil = { url: secure_url, publicId: public_id };
         }
 
-        // Aplicar solo los campos de perfil permitidos
+        // Aplicar solo los campos de perfil permitidos.
+        // Si el campo no se envía (undefined) -> no se modifica.
+        // Si se envía vacío ('' o null) -> se limpia el campo (queda en null).
+        // Si se envía con valor -> se actualiza.
         const { carrera, semestre, telefono, descripcion, github } = req.body;
 
-        usuarioBDD.carrera     = carrera     ?? usuarioBDD.carrera;
-        usuarioBDD.semestre    = semestre    ?? usuarioBDD.semestre;
-        usuarioBDD.telefono    = telefono    ?? usuarioBDD.telefono;
-        usuarioBDD.descripcion = descripcion ?? usuarioBDD.descripcion;
-        usuarioBDD.github      = github      ?? usuarioBDD.github;
+        if (carrera !== undefined)     usuarioBDD.carrera     = carrera === '' ? null : carrera;
+        if (semestre !== undefined)    usuarioBDD.semestre    = semestre === '' || semestre === null ? null : semestre;
+        if (telefono !== undefined)    usuarioBDD.telefono    = telefono === '' ? null : telefono;
+        if (descripcion !== undefined) usuarioBDD.descripcion = descripcion === '' ? null : descripcion;
+        if (github !== undefined)      usuarioBDD.github      = github === '' ? null : github;
 
         await usuarioBDD.save();
 
