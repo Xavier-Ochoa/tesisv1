@@ -53,7 +53,7 @@ const validarFechaFin = (requerido = false) => {
   });
 };
 
-// Campos comunes obligatorios para los 3 formularios
+// Campos comunes obligatorios para los 3 formularios (creación: siempre requeridos)
 const camposObligatoriosComunes = [
   body('titulo').trim().notEmpty().withMessage('El título del proyecto es obligatorio').isLength({ min: 5, max: 200 }).withMessage('El título debe tener entre 5 y 200 caracteres'),
   body('descripcion').trim().notEmpty().withMessage('La descripción es obligatoria').isLength({ min: 20, max: 2000 }).withMessage('La descripción debe tener entre 20 y 2000 caracteres'),
@@ -69,13 +69,41 @@ const camposObligatoriosComunes = [
   validarImagenesOpcionales,
 ];
 
+// Campos comunes para ACTUALIZAR: cada campo solo se valida (y exige) si viene presente en el body.
+// Esto permite updates parciales tipo PATCH (ej. enviar solo { enviarAlAdmin: true })
+// sin perder la validación de formato/longitud cuando el campo sí se envía.
+const campoPresente = (campo) => (value, { req }) => req.body && req.body[campo] !== undefined;
+
+const camposActualizables = [
+  body('titulo').if(campoPresente('titulo')).trim().notEmpty().withMessage('El título del proyecto es obligatorio').isLength({ min: 5, max: 200 }).withMessage('El título debe tener entre 5 y 200 caracteres'),
+  body('descripcion').if(campoPresente('descripcion')).trim().notEmpty().withMessage('La descripción es obligatoria').isLength({ min: 20, max: 2000 }).withMessage('La descripción debe tener entre 20 y 2000 caracteres'),
+  body('categoria').if(campoPresente('categoria')).notEmpty().withMessage('La categoría es obligatoria').isIn(['academico', 'extracurricular']).withMessage('La categoría debe ser "academico" o "extracurricular"'),
+  body('fechaInicio').if(campoPresente('fechaInicio')).notEmpty().withMessage('La fecha de inicio es obligatoria').isISO8601().withMessage('La fecha de inicio debe tener formato válido (YYYY-MM-DD)'),
+  body('lineaInvestigacion').optional().trim().isLength({ max: 200 }).withMessage('La línea de investigación no puede exceder 200 caracteres'),
+  body('fechaFin').if(campoPresente('fechaFin')).notEmpty().withMessage('La fecha de fin es obligatoria').isISO8601().withMessage('La fecha de fin debe tener formato válido (YYYY-MM-DD)')
+    .custom((fechaFin, { req }) => {
+      if (req.body.fechaInicio && fechaFin && new Date(fechaFin) < new Date(req.body.fechaInicio)) {
+        throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
+      }
+      return true;
+    }),
+  body('tecnologias').optional().customSanitizer(convertirStringAArray).custom((v) => validarElementosArray(v, 'tecnologías')),
+  validarURL('repositorio'),
+  validarURL('enlaceDemo'),
+  body('palabrasClave').optional().customSanitizer(convertirStringAArray).custom((v) => validarElementosArray(v, 'palabras clave')),
+  validarEnviarAlAdmin,
+  validarImagenesOpcionales,
+];
+
 // ── CREAR PROYECTO ──────────────────────────────────────────────────────────
 export const validarCrearProyecto = [...camposObligatoriosComunes];
 
 // ── ACTUALIZAR PROYECTO ─────────────────────────────────────────────────────
+// Validación parcial (tipo PATCH): si el campo no viene en el body, no se exige.
+// Si viene, se valida con las mismas reglas de formato/longitud que en creación.
 export const validarActualizarProyecto = [
   param('id').isMongoId().withMessage('ID de proyecto inválido'),
-  ...camposObligatoriosComunes,
+  ...camposActualizables,
 ];
 
 export const validarAgregarComentario = [
