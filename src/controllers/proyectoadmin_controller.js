@@ -174,6 +174,12 @@ export const rechazarProyecto = async (req, res) => {
   try {
     const { id } = req.params;
     const { motivo } = req.body;
+
+    // El motivo de rechazo es obligatorio
+    if (!motivo || !motivo.trim()) {
+      return res.status(400).json({ success: false, message: 'El motivo de rechazo es obligatorio' });
+    }
+
     const proyecto = await Proyecto.findById(id);
     if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     if (!proyecto.enviarAlAdmin) {
@@ -181,7 +187,7 @@ export const rechazarProyecto = async (req, res) => {
     }
     if (proyecto.estado === 'rechazado') return res.status(400).json({ success: false, message: 'El proyecto ya se encuentra rechazado y no puede volver a rechazarse' });
     proyecto.estado        = 'rechazado';
-    proyecto.motivoRechazo = motivo || '';
+    proyecto.motivoRechazo = motivo.trim();
     await proyecto.save();
     res.status(200).json({ success: true, message: 'Proyecto rechazado. El autor podrá editarlo y volver a enviarlo.', data: proyecto });
   } catch (error) {
