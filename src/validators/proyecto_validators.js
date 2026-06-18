@@ -40,17 +40,27 @@ const validarURL = (campo) =>
     return true;
   });
 
-// ── CREAR PROYECTO ──────────────────────────────────────────────────────────
-export const validarCrearProyecto = [
+// Validación de fechaFin obligatoria y posterior a fechaInicio
+const validarFechaFin = (requerido = false) => {
+  const campo = requerido
+    ? body('fechaFin').notEmpty().withMessage('La fecha de fin es obligatoria').isISO8601().withMessage('La fecha de fin debe tener formato válido (YYYY-MM-DD)')
+    : body('fechaFin').notEmpty().withMessage('La fecha de fin es obligatoria').isISO8601().withMessage('La fecha de fin debe tener formato válido (YYYY-MM-DD)');
+  return campo.custom((fechaFin, { req }) => {
+    if (req.body.fechaInicio && fechaFin && new Date(fechaFin) < new Date(req.body.fechaInicio)) {
+      throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
+    }
+    return true;
+  });
+};
+
+// Campos comunes obligatorios para los 3 formularios
+const camposObligatoriosComunes = [
   body('titulo').trim().notEmpty().withMessage('El título del proyecto es obligatorio').isLength({ min: 5, max: 200 }).withMessage('El título debe tener entre 5 y 200 caracteres'),
   body('descripcion').trim().notEmpty().withMessage('La descripción es obligatoria').isLength({ min: 20, max: 2000 }).withMessage('La descripción debe tener entre 20 y 2000 caracteres'),
   body('categoria').notEmpty().withMessage('La categoría es obligatoria').isIn(['academico', 'extracurricular']).withMessage('La categoría debe ser "academico" o "extracurricular"'),
   body('fechaInicio').notEmpty().withMessage('La fecha de inicio es obligatoria').isISO8601().withMessage('La fecha de inicio debe tener formato válido (YYYY-MM-DD)'),
   body('lineaInvestigacion').optional().trim().isLength({ max: 200 }).withMessage('La línea de investigación no puede exceder 200 caracteres'),
-  body('fechaFin').optional().isISO8601().withMessage('La fecha de fin debe tener formato válido').custom((fechaFin, { req }) => {
-    if (req.body.fechaInicio && fechaFin && new Date(fechaFin) < new Date(req.body.fechaInicio)) throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
-    return true;
-  }),
+  validarFechaFin(),
   body('tecnologias').optional().customSanitizer(convertirStringAArray).custom((v) => validarElementosArray(v, 'tecnologías')),
   validarURL('repositorio'),
   validarURL('enlaceDemo'),
@@ -59,21 +69,13 @@ export const validarCrearProyecto = [
   validarImagenesOpcionales,
 ];
 
+// ── CREAR PROYECTO ──────────────────────────────────────────────────────────
+export const validarCrearProyecto = [...camposObligatoriosComunes];
+
 // ── ACTUALIZAR PROYECTO ─────────────────────────────────────────────────────
 export const validarActualizarProyecto = [
   param('id').isMongoId().withMessage('ID de proyecto inválido'),
-  body('titulo').optional().trim().isLength({ min: 5, max: 200 }).withMessage('El título debe tener entre 5 y 200 caracteres'),
-  body('descripcion').optional().trim().isLength({ min: 20, max: 2000 }).withMessage('La descripción debe tener entre 20 y 2000 caracteres'),
-  body('categoria').optional().isIn(['academico', 'extracurricular']).withMessage('La categoría debe ser "academico" o "extracurricular"'),
-  body('lineaInvestigacion').optional().trim().isLength({ max: 200 }).withMessage('La línea de investigación no puede exceder 200 caracteres'),
-  body('fechaInicio').optional().isISO8601().withMessage('La fecha de inicio debe tener formato válido'),
-  body('fechaFin').optional().isISO8601().withMessage('La fecha de fin debe tener formato válido'),
-  body('tecnologias').optional().customSanitizer(convertirStringAArray).custom((v) => validarElementosArray(v, 'tecnologías')),
-  validarURL('repositorio'),
-  validarURL('enlaceDemo'),
-  body('palabrasClave').optional().customSanitizer(convertirStringAArray).custom((v) => validarElementosArray(v, 'palabras clave')),
-  validarEnviarAlAdmin,
-  validarImagenesOpcionales,
+  ...camposObligatoriosComunes,
 ];
 
 export const validarAgregarComentario = [
