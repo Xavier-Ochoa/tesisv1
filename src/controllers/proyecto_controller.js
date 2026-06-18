@@ -436,7 +436,7 @@ export const crearNuevaVersion = async (req, res) => {
       estado:            'pendiente',
       motivoRechazo:     '',
       enviarAlAdmin:     req.body.enviarAlAdmin === true  || req.body.enviarAlAdmin === 'true',
-      publico:           versionActual.publico,
+      publico:           false, // cada versión debe publicarse manualmente, no se hereda de la versión anterior
       activo:            true,
       titulo:            versionActual.titulo,
       descripcion:       versionActual.descripcion,
