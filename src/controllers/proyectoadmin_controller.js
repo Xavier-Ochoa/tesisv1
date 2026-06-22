@@ -5,13 +5,18 @@ import { eliminarPDFGridFS } from '../helpers/gridfs.js';
 // ─────────────────────────────────────────────────────────────────────────────
 // LISTAR TODOS LOS PROYECTOS — admin
 // Solo ve proyectos con enviarAlAdmin=true + activo=true
+// Query params: ?categoria=academico|extracurricular  ?q=texto  ?estado=  ?autor=  ?sort=  ?page=  ?limit=
 // ─────────────────────────────────────────────────────────────────────────────
 export const listarTodosProyectos = async (req, res) => {
   try {
     const { page = 1, limit = 10, estado, categoria, autor, q, sort = '-createdAt' } = req.query;
     const filtro = { enviarAlAdmin: true, activo: true, esUltimaVersion: true };
     if (estado)    filtro.estado    = estado;
-    if (categoria) filtro.categoria = categoria;
+    if (categoria) {
+      if (!['academico', 'extracurricular'].includes(categoria))
+        return res.status(400).json({ success: false, message: 'Categoría inválida' });
+      filtro.categoria = categoria;
+    }
     if (autor)     filtro.autor     = autor;
     if (q?.trim()) filtro.$text     = { $search: q.trim() };
 
@@ -103,23 +108,18 @@ export const desactivarProyectoAdmin = async (req, res) => {
     if (!proyecto.activo) {
       return res.status(400).json({ success: false, message: 'El proyecto ya está desactivado' });
     }
-
-    // Bloquear si está aprobado
     if (proyecto.estado === 'aprobado') {
       return res.status(400).json({
         success: false,
         message: 'No se puede desactivar un proyecto aprobado. Solo se pueden desactivar proyectos en estado pendiente o rechazado que no estén publicados.',
       });
     }
-
-    // Bloquear si está publicado (aunque no esté aprobado, por seguridad)
     if (proyecto.publico) {
       return res.status(400).json({
         success: false,
         message: 'No se puede desactivar un proyecto publicado. Solo se pueden desactivar proyectos privados (no publicados) en estado pendiente o rechazado.',
       });
     }
-
     await Proyecto.updateMany({ proyecto_id: proyecto.proyecto_id }, { $set: { activo: false } });
     res.status(200).json({ success: true, message: 'Proyecto desactivado. Todas las versiones han sido desactivadas.' });
   } catch (error) {
@@ -174,12 +174,9 @@ export const rechazarProyecto = async (req, res) => {
   try {
     const { id } = req.params;
     const { motivo } = req.body;
-
-    // El motivo de rechazo es obligatorio
     if (!motivo || !motivo.trim()) {
       return res.status(400).json({ success: false, message: 'El motivo de rechazo es obligatorio' });
     }
-
     const proyecto = await Proyecto.findById(id);
     if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     if (!proyecto.enviarAlAdmin) {
@@ -197,38 +194,8 @@ export const rechazarProyecto = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FILTROS ADMIN
+// PROYECTOS DESTACADOS (admin) — top 10 por vistas, cualquier estado
 // ─────────────────────────────────────────────────────────────────────────────
-export const listarProyectosPorCategoriaAdmin = async (req, res) => {
-  try {
-    const { tipo } = req.params;
-    const { page = 1, limit = 10, estado } = req.query;
-    if (!['academico', 'extracurricular'].includes(tipo)) return res.status(400).json({ success: false, message: 'Categoría inválida' });
-    const filtro = { categoria: tipo, enviarAlAdmin: true, activo: true, esUltimaVersion: true };
-    if (estado) filtro.estado = estado;
-    const [proyectos, total] = await Promise.all([
-      Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').sort('-createdAt').limit(Number(limit)).skip((Number(page) - 1) * Number(limit)),
-      Proyecto.countDocuments(filtro),
-    ]);
-    res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / limit) } });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
-  }
-};
-
-export const buscarProyectosAdmin = async (req, res) => {
-  try {
-    const { q, estado } = req.query;
-    if (!q?.trim()) return res.status(400).json({ success: false, message: 'Proporciona un término de búsqueda' });
-    const filtro = { $text: { $search: q.trim() }, enviarAlAdmin: true, activo: true, esUltimaVersion: true };
-    if (estado) filtro.estado = estado;
-    const proyectos = await Proyecto.find(filtro).populate('autor', 'nombre apellido carrera').limit(50);
-    res.status(200).json({ success: true, data: proyectos, total: proyectos.length });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al buscar proyectos', error: error.message });
-  }
-};
-
 export const proyectosDestacadosAdmin = async (req, res) => {
   try {
     const proyectos = await Proyecto.find({ enviarAlAdmin: true, activo: true, esUltimaVersion: true })
@@ -239,6 +206,9 @@ export const proyectosDestacadosAdmin = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// HISTORIAL DE VERSIONES (admin)
+// ─────────────────────────────────────────────────────────────────────────────
 export const historialVersionesAdmin = async (req, res) => {
   try {
     const { proyectoId } = req.params;
