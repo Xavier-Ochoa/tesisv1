@@ -7,8 +7,6 @@ import {
   reactivarProyectoAdmin,
   aprobarProyecto,
   rechazarProyecto,
-  listarProyectosPorCategoriaAdmin,
-  buscarProyectosAdmin,
   proyectosDestacadosAdmin,
   historialVersionesAdmin,
 } from '../controllers/proyectoadmin_controller.js';
@@ -20,10 +18,9 @@ const router = Router();
 router.use(verificarTokenJWT, verificarAdmin);
 
 // ── LISTAR / BUSCAR ───────────────────────────────────────────────────────────
+// Soporta query params: ?categoria=academico|extracurricular  ?q=texto  ?estado=  ?autor=  ?sort=  ?page=  ?limit=
 router.get('/',                         listarTodosProyectos);
-router.get('/buscar',                   buscarProyectosAdmin);
 router.get('/destacados',               proyectosDestacadosAdmin);
-router.get('/categoria/:tipo',          listarProyectosPorCategoriaAdmin);
 
 // ── HISTORIAL DE VERSIONES ────────────────────────────────────────────────────
 // GET /admin/proyectos/versiones/:proyectoId
