@@ -93,7 +93,7 @@ router.post('/:id/colaboradores',                  verificarTokenJWT, verificarD
 router.delete('/:id/colaboradores/:colaboradorId', verificarTokenJWT, verificarDocente, eliminarColaborador);
 
 // ── EDICIÓN POR COLABORADOR ───────────────────────────────────────────────────
-router.put('/:id/colaborador',             verificarTokenJWT, actualizarProyectoColaborador);
+router.put('/:id/colaborador',             verificarTokenJWT, fileUploadMiddleware, actualizarProyectoColaborador);
 router.delete('/:id/colaborador/imagenes', verificarTokenJWT, eliminarImagenColaborador);
 
 export default router;
