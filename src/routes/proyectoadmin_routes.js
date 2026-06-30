@@ -2,7 +2,6 @@ import { Router } from 'express';
 import {
   listarTodosProyectos,
   obtenerProyectoAdmin,
-  actualizarProyectoAdmin,
   desactivarProyectoAdmin,
   reactivarProyectoAdmin,
   aprobarProyecto,
@@ -27,8 +26,10 @@ router.get('/destacados',               proyectosDestacadosAdmin);
 router.get('/versiones/:proyectoId',    historialVersionesAdmin);
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
+// Nota: el admin solo puede consultar el detalle, no editar el contenido del
+// proyecto. La edición de contenido es exclusiva del autor/colaboradores,
+// para preservar la privacidad y autoría del usuario.
 router.get('/:id',                      obtenerProyectoAdmin);
-router.put('/:id',                      actualizarProyectoAdmin);
 
 // ── BORRADO LÓGICO / REACTIVACIÓN ─────────────────────────────────────────────
 // El admin NO puede borrar permanentemente, solo desactivar/reactivar
