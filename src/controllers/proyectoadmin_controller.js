@@ -1,6 +1,4 @@
 import Proyecto from '../models/Proyecto.js';
-import { subirImagenCloudinary, eliminarImagenCloudinary } from '../helpers/uploadCloudinary.js';
-import { eliminarPDFGridFS } from '../helpers/gridfs.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LISTAR TODOS LOS PROYECTOS — admin
@@ -51,39 +49,6 @@ export const obtenerProyectoAdmin = async (req, res) => {
     res.status(200).json({ success: true, data: proyecto });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error al obtener el proyecto', error: error.message });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ACTUALIZAR PROYECTO (admin) — solo datos, no estado
-// ─────────────────────────────────────────────────────────────────────────────
-export const actualizarProyectoAdmin = async (req, res) => {
-  try {
-    const { id } = req.params;
-    req.body = req.body ?? {};
-    const proyecto = await Proyecto.findById(id);
-    if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
-    if (!proyecto.enviarAlAdmin) {
-      return res.status(403).json({ success: false, message: 'Los proyectos no enviados al admin no son accesibles desde el panel de administración' });
-    }
-    const camposPermitidos = ['titulo', 'descripcion', 'categoria', 'lineaInvestigacion', 'fechaInicio', 'fechaFin', 'tecnologias', 'repositorio', 'enlaceDemo', 'palabrasClave'];
-    const datosActualizacion = {};
-    for (const campo of camposPermitidos) {
-      if (req.body[campo] !== undefined) datosActualizacion[campo] = req.body[campo];
-    }
-    if (req.files?.imagen) {
-      if (proyecto.imagenesID?.length > 0) {
-        for (const pid of proyecto.imagenesID) { try { await eliminarImagenCloudinary(pid); } catch (e) { console.error(e); } }
-      }
-      const { secure_url, public_id } = await subirImagenCloudinary(req.files.imagen.tempFilePath, 'Proyectos');
-      datosActualizacion.imagenes   = [secure_url];
-      datosActualizacion.imagenesID = [public_id];
-    }
-    const proyectoActualizado = await Proyecto.findByIdAndUpdate(id, { $set: datosActualizacion }, { new: true, runValidators: true })
-      .populate('autor', 'nombre apellido carrera email').populate('colaboradores', 'nombre apellido carrera');
-    res.status(200).json({ success: true, message: 'Proyecto actualizado', data: proyectoActualizado });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar el proyecto', error: error.message });
   }
 };
 
