@@ -1,0 +1,395 @@
+{
+  "_comentario": "Mapa de cada describe() de Jest a su Sprint y Figura del documento de Resultados (3.2 Sprint1 / 3.3 Sprint2 / 3.4 Sprint3 / 3.5 Sprint4). Las entradas sin 'figura' (anexo:true) corresponden a ejecuciones que el documento remite al ANEXO II. El campo 'orden' fija la posición exacta dentro del sprint según el texto, incluso cuando dos endpoints comparten figura o no tienen figura propia.",
+  "sprints": {
+    "1": "Sprint 1. Diseño y codificación de rutas para autenticación, usuarios y proyectos",
+    "2": "Sprint 2. Diseño y codificación de rutas para chat, estadísticas, control administrativo de proyectos e IA",
+    "3": "Sprint 3. Diseño y codificación de rutas para contraseña, perfil, colaboradores y archivos",
+    "4": "Sprint 4. Recuperación de contraseña y donaciones"
+  },
+  "describes": {
+    "POST /api/auth/registro": {
+      "sprint": 1,
+      "orden": 1,
+      "figura": "3.4–3.5",
+      "modulo": "Registro de usuario"
+    },
+    "GET /api/auth/confirm/:token": {
+      "sprint": 1,
+      "orden": 2,
+      "figura": "3.6–3.7",
+      "modulo": "Confirmación de correo institucional"
+    },
+    "POST /api/auth/reenviar-confirmacion": {
+      "sprint": 1,
+      "orden": 3,
+      "anexo": true,
+      "modulo": "Reenvío de confirmación de correo"
+    },
+    "POST /api/auth/login": {
+      "sprint": 1,
+      "orden": 4,
+      "figura": "3.8–3.9",
+      "modulo": "Inicio de sesión"
+    },
+    "POST /api/auth/logout": {
+      "sprint": 1,
+      "orden": 5,
+      "figura": "3.10–3.11",
+      "modulo": "Cierre de sesión"
+    },
+    "GET /api/admin/estudiantes": {
+      "sprint": 1,
+      "orden": 6,
+      "figura": "3.12–3.13",
+      "modulo": "Listar todos los usuarios"
+    },
+    "GET /api/admin/estudiantes/:id": {
+      "sprint": 1,
+      "orden": 7,
+      "figura": "3.14–3.15",
+      "modulo": "Obtener usuario por ID"
+    },
+    "GET /api/admin/estudiantes/estadisticas": {
+      "sprint": 1,
+      "orden": 8,
+      "figura": "3.16–3.17",
+      "modulo": "Estadísticas de usuarios"
+    },
+    "PATCH /api/admin/estudiantes/:id/estado": {
+      "sprint": 1,
+      "orden": 9,
+      "figura": "3.18–3.19",
+      "modulo": "Cambiar estado de usuario"
+    },
+    "PATCH /api/auth/usuarios/:id/rol": {
+      "sprint": 1,
+      "orden": 10,
+      "figura": "3.20–3.21",
+      "modulo": "Cambiar rol de usuario"
+    },
+    "POST /api/proyectos": {
+      "sprint": 1,
+      "orden": 11,
+      "figura": "3.22–3.23",
+      "modulo": "Crear proyecto"
+    },
+    "PUT /api/proyectos/:id": {
+      "sprint": 1,
+      "orden": 12,
+      "figura": "3.24–3.25",
+      "modulo": "Actualizar proyecto propio"
+    },
+    "DELETE /api/proyectos/:id": {
+      "sprint": 1,
+      "orden": 13,
+      "figura": "3.26–3.27",
+      "modulo": "Eliminar proyecto propio"
+    },
+    "GET /api/proyectos/usuario/mis-proyectos": {
+      "sprint": 1,
+      "orden": 14,
+      "figura": "3.28–3.29",
+      "modulo": "Mis proyectos"
+    },
+    "GET /api/proyectos": {
+      "sprint": 1,
+      "orden": 15,
+      "figura": "3.30–3.31",
+      "modulo": "Listar todos los proyectos"
+    },
+    "GET /api/proyectos/:id": {
+      "sprint": 1,
+      "orden": 16,
+      "figura": "3.32–3.33",
+      "modulo": "Ver detalle de proyecto"
+    },
+    "GET /api/proyectos/destacados": {
+      "sprint": 1,
+      "orden": 17,
+      "figura": "3.34–3.35",
+      "modulo": "Proyectos destacados"
+    },
+    "GET /api/proyectos/categoria/:tipo": {
+      "sprint": 1,
+      "orden": 18,
+      "figura": "3.36–3.37",
+      "modulo": "Filtrar por categoría"
+    },
+    "GET /api/proyectos/estudiante/:id": {
+      "sprint": 1,
+      "orden": 19,
+      "figura": "3.38–3.39",
+      "modulo": "Filtrar por estudiante"
+    },
+    "GET /api/auth/perfil": {
+      "sprint": 1,
+      "orden": 20,
+      "anexo": true,
+      "modulo": "Ver perfil propio"
+    },
+    "PUT /api/auth/perfil": {
+      "sprint": 1,
+      "orden": 21,
+      "anexo": true,
+      "modulo": "Actualizar perfil propio"
+    },
+    "GET /api/auth/random-image": {
+      "sprint": 1,
+      "orden": 22,
+      "anexo": true,
+      "modulo": "Utilitario - imagen aleatoria"
+    },
+    "GET /api/auth/frases": {
+      "sprint": 1,
+      "orden": 23,
+      "anexo": true,
+      "modulo": "Utilitario - frases"
+    },
+    "POST /api/chat/mensaje": {
+      "sprint": 2,
+      "orden": 1,
+      "figura": "3.40–3.41",
+      "modulo": "Enviar mensaje al administrador"
+    },
+    "GET /api/chat/mensajes": {
+      "sprint": 2,
+      "orden": 2,
+      "figura": "3.42–3.43",
+      "modulo": "Ver conversación propia"
+    },
+    "POST /api/chat/admin/responder": {
+      "sprint": 2,
+      "orden": 3,
+      "figura": "3.44–3.45",
+      "modulo": "Responder a usuario"
+    },
+    "GET /api/chat/admin/conversaciones": {
+      "sprint": 2,
+      "orden": 4,
+      "figura": "3.46–3.47",
+      "modulo": "Listar conversaciones"
+    },
+    "GET /api/chat/admin/mensajes/:userId": {
+      "sprint": 2,
+      "orden": 5,
+      "figura": "3.48–3.49",
+      "modulo": "Ver conversación de un usuario"
+    },
+    "GET /api/dashboard/admin": {
+      "sprint": 2,
+      "orden": 6,
+      "figura": "3.50–3.51",
+      "modulo": "Estadísticas globales"
+    },
+    "GET /api/dashboard/usuario": {
+      "sprint": 2,
+      "orden": 7,
+      "figura": "3.52–3.53",
+      "modulo": "Estadísticas personales"
+    },
+    "GET /api/admin/proyectos": {
+      "sprint": 2,
+      "orden": 8,
+      "figura": "3.54–3.55",
+      "modulo": "Listar todos los proyectos (admin)"
+    },
+    "GET /api/admin/proyectos?q= (búsqueda por texto)": {
+      "sprint": 2,
+      "orden": 9,
+      "anexo": true,
+      "modulo": "Búsqueda de proyectos (admin)"
+    },
+    "GET /api/admin/proyectos/destacados": {
+      "sprint": 2,
+      "orden": 10,
+      "figura": "3.56–3.57",
+      "modulo": "Proyectos destacados (admin)"
+    },
+    "GET /api/admin/proyectos/:id": {
+      "sprint": 2,
+      "orden": 11,
+      "figura": "3.58–3.59",
+      "modulo": "Ver detalle de proyecto (admin)"
+    },
+    "PUT /api/admin/proyectos/:id/aprobar": {
+      "sprint": 2,
+      "orden": 12,
+      "figura": "3.62–3.63",
+      "modulo": "Aprobar proyecto"
+    },
+    "PUT /api/admin/proyectos/:id/rechazar": {
+      "sprint": 2,
+      "orden": 13,
+      "figura": "3.64–3.65",
+      "modulo": "Rechazar proyecto"
+    },
+    "PUT /api/admin/proyectos/:id/desactivar": {
+      "sprint": 2,
+      "orden": 14,
+      "figura": "3.66–3.67",
+      "modulo": "Desactivar proyecto"
+    },
+    "PUT /api/admin/proyectos/:id/reactivar": {
+      "sprint": 2,
+      "orden": 15,
+      "figura": "3.68–3.69",
+      "modulo": "Reactivar proyecto"
+    },
+    "POST /api/ia/generar-titulo": {
+      "sprint": 2,
+      "orden": 16,
+      "figura": "3.70–3.71",
+      "modulo": "Generar títulos con IA"
+    },
+    "POST /api/proyectos/:id/like": {
+      "sprint": 2,
+      "orden": 17,
+      "figura": "3.72–3.73",
+      "modulo": "Dar like a proyecto"
+    },
+    "DELETE /api/proyectos/:id/like": {
+      "sprint": 2,
+      "orden": 18,
+      "figura": "3.74–3.75",
+      "modulo": "Quitar like a proyecto"
+    },
+    "POST /api/proyectos/:id/comentarios": {
+      "sprint": 2,
+      "orden": 19,
+      "figura": "3.76–3.77",
+      "modulo": "Agregar comentario"
+    },
+    "DELETE /api/proyectos/:id/comentarios/:comentarioId": {
+      "sprint": 2,
+      "orden": 20,
+      "figura": "3.78–3.79",
+      "modulo": "Eliminar comentario"
+    },
+    "verificarAccesoInteraccion — colaborador en proyecto no público (hallazgo #14)": {
+      "sprint": 2,
+      "orden": 21,
+      "anexo": true,
+      "modulo": "Verificación de acceso a interacción (colaborador)"
+    },
+    "PUT /api/auth/password": {
+      "sprint": 3,
+      "orden": 1,
+      "figura": "3.80–3.81",
+      "modulo": "Cambiar contraseña"
+    },
+    "GET /api/proyectos/:id/colaboradores": {
+      "sprint": 3,
+      "orden": 2,
+      "figura": "3.86–3.87",
+      "modulo": "Listar colaboradores de proyecto"
+    },
+    "POST /api/proyectos/:id/colaboradores": {
+      "sprint": 3,
+      "orden": 3,
+      "figura": "3.88–3.89",
+      "modulo": "Agregar colaborador (docente)"
+    },
+    "DELETE /api/proyectos/:id/colaboradores/:colabId": {
+      "sprint": 3,
+      "orden": 4,
+      "figura": "3.90–3.91",
+      "modulo": "Eliminar colaborador (docente)"
+    },
+    "PUT /api/proyectos/:id/colaborador": {
+      "sprint": 3,
+      "orden": 5,
+      "figura": "3.92–3.93",
+      "modulo": "Editar proyecto como colaborador"
+    },
+    "DELETE /api/proyectos/:id/colaborador/imagenes": {
+      "sprint": 3,
+      "orden": 6,
+      "figura": "3.94–3.95",
+      "modulo": "Eliminar imagen como colaborador"
+    },
+    "GET /api/proyectos/donde-colaboro": {
+      "sprint": 3,
+      "orden": 7,
+      "figura": "3.96–3.97",
+      "modulo": "Ver proyectos donde colaboro"
+    },
+    "GET /api/proyectos/mis-proyectos-con-colaboradores": {
+      "sprint": 3,
+      "orden": 8,
+      "figura": "3.98–3.99",
+      "modulo": "Mis proyectos con colaboradores"
+    },
+    "PUT /api/proyectos/:id/documento (subir PDF)": {
+      "sprint": 3,
+      "orden": 9,
+      "figura": "3.100–3.101",
+      "modulo": "Subir / reemplazar PDF"
+    },
+    "GET /api/proyectos/:id/documento (descargar PDF)": {
+      "sprint": 3,
+      "orden": 10,
+      "figura": "3.102–3.103",
+      "modulo": "Descargar / ver PDF"
+    },
+    "DELETE /api/proyectos/:id/documento (eliminar PDF)": {
+      "sprint": 3,
+      "orden": 11,
+      "figura": "3.104–3.105",
+      "modulo": "Eliminar PDF"
+    },
+    "DELETE /api/proyectos/:id/imagenes (eliminar imagen)": {
+      "sprint": 3,
+      "orden": 12,
+      "figura": "3.106–3.107",
+      "modulo": "Eliminar imagen de proyecto"
+    },
+    "POST /api/proyectos/:id/versiones (crear nueva versión)": {
+      "sprint": 3,
+      "orden": 13,
+      "figura": "3.108–3.109",
+      "modulo": "Crear nueva versión"
+    },
+    "GET /api/proyectos/versiones/:proyectoId (historial del usuario)": {
+      "sprint": 3,
+      "orden": 14,
+      "figura": "3.110–3.111",
+      "modulo": "Historial de mis versiones"
+    },
+    "GET /api/admin/proyectos/versiones/:proyectoId (historial admin)": {
+      "sprint": 3,
+      "orden": 15,
+      "figura": "3.112–3.113",
+      "modulo": "Historial de versiones enviadas a revisión"
+    },
+    "PUT /api/proyectos/:id/publicar": {
+      "sprint": 3,
+      "orden": 16,
+      "figura": "3.114–3.115",
+      "modulo": "Publicar proyecto (autor)"
+    },
+    "POST /api/auth/recuperarpassword": {
+      "sprint": 4,
+      "orden": 1,
+      "figura": "3.116–3.117",
+      "modulo": "Solicitar recuperación de contraseña"
+    },
+    "GET /api/auth/recuperarpassword/:token": {
+      "sprint": 4,
+      "orden": 2,
+      "figura": "3.118–3.119",
+      "modulo": "Validar token de recuperación"
+    },
+    "POST /api/auth/nuevopassword/:token": {
+      "sprint": 4,
+      "orden": 3,
+      "figura": "3.120–3.121",
+      "modulo": "Establecer nueva contraseña"
+    },
+    "POST /api/donaciones": {
+      "sprint": 4,
+      "orden": 4,
+      "figura": "3.122–3.123",
+      "modulo": "Realizar donación"
+    }
+  }
+}
