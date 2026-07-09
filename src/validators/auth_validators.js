@@ -132,7 +132,7 @@ export const validarActualizarPerfil = [
     ]).withMessage('La carrera no es válida. Las opciones permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento Industrial de la Madera'),
 
   body('semestre')
-    .optional()
+    .optional({ checkFalsy: true })
     .isInt({ min: 0, max: 5 }).withMessage('El semestre debe ser un número entre 0 y 5'),
 
   body('telefono')
