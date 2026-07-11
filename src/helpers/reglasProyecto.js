@@ -18,6 +18,9 @@ export const validarEditable = (proyecto) => {
   if (!proyecto.esUltimaVersion) {
     return 'Solo se puede modificar la última versión del proyecto';
   }
+  if (!proyecto.activo) {
+    return 'No se puede editar un proyecto desactivado. Contacta al administrador para reactivarlo';
+  }
   const { enviarAlAdmin, estado } = proyecto;
 
   if (!enviarAlAdmin) {
