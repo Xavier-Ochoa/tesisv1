@@ -109,6 +109,14 @@ export const obtenerProyecto = async (req, res) => {
     const esPublicoAprobado = proyecto.publico && proyecto.estado === 'aprobado' && proyecto.activo;
     const esAdminConAcceso = esAdmin && proyecto.enviarAlAdmin;
 
+    if (!proyecto.activo) {
+      // Un proyecto desactivado solo es accesible por ID directo para el administrador.
+      if (!esAdminConAcceso) {
+        return res.status(403).json({ success: false, message: 'Este proyecto está desactivado y solo puede ser consultado por el administrador' });
+      }
+      return res.status(200).json({ success: true, data: proyecto });
+    }
+
     if (!esAdminConAcceso && !esPublicoAprobado && !esAutor && !esColaborador) {
       return res.status(403).json({ success: false, message: 'No tienes permiso para ver este proyecto' });
     }
