@@ -649,6 +649,8 @@ export const agregarColaborador = async (req, res) => {
     const proyecto = await Proyecto.findById(id);
     if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     if (proyecto.autor.toString() !== usuarioId.toString()) return res.status(403).json({ success: false, message: 'Solo el autor puede gestionar colaboradores' });
+    const errorRegla = validarEditable(proyecto);
+    if (errorRegla) return res.status(403).json({ success: false, message: errorRegla });
     const colaborador = await Estudiante.findOne({ email: email.toLowerCase().trim() }).select('+confirmEmail +estado +rol');
     if (!colaborador) return res.status(404).json({ success: false, message: 'No existe ningún usuario con ese correo' });
     if (colaborador.rol !== 'estudiante') return res.status(400).json({ success: false, message: 'Solo se pueden agregar estudiantes como colaboradores' });
@@ -670,6 +672,8 @@ export const eliminarColaborador = async (req, res) => {
     const proyecto = await Proyecto.findById(id);
     if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
     if (proyecto.autor.toString() !== usuarioId.toString()) return res.status(403).json({ success: false, message: 'Solo el autor puede gestionar colaboradores' });
+    const errorRegla = validarEditable(proyecto);
+    if (errorRegla) return res.status(403).json({ success: false, message: errorRegla });
     proyecto.colaboradores = proyecto.colaboradores.filter(c => c.toString() !== colaboradorId);
     await proyecto.save();
     await proyecto.populate('colaboradores', 'nombre apellido email carrera');
