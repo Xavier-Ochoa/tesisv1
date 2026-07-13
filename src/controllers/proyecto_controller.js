@@ -41,9 +41,9 @@ export const misProyectos = async (req, res) => {
     const usuarioId = req.estudianteBDD._id;
     const { page = 1, limit = 10, estado, enviarAlAdmin, categoria, sort = '-createdAt' } = req.query;
     const filtro = { $or: [{ autor: usuarioId }, { colaboradores: usuarioId }], esUltimaVersion: true, activo: true };
-    if (estado)        filtro.estado        = estado;
+    if (estado)        filtro.estado        = String(estado);
     if (enviarAlAdmin !== undefined) filtro.enviarAlAdmin = enviarAlAdmin === 'true';
-    if (categoria)     filtro.categoria     = categoria;
+    if (categoria)     filtro.categoria     = String(categoria);
 
     const [proyectos, total] = await Promise.all([
       Proyecto.find(filtro)
