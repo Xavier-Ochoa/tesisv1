@@ -699,6 +699,13 @@ export const listarColaboradores = async (req, res) => {
   try {
     const proyecto = await Proyecto.findById(req.params.id).populate('colaboradores', 'nombre apellido email carrera semestre');
     if (!proyecto) return res.status(404).json({ success: false, message: 'Proyecto no encontrado' });
+    const usuarioId = req.estudianteBDD._id;
+    const esAdmin = req.estudianteBDD?.rol === 'admin';
+    const { esAutor, esColaborador } = rolesEnProyecto(proyecto, usuarioId);
+    const esPublicoAprobado = proyecto.publico && proyecto.estado === 'aprobado';
+    if (!esAutor && !esColaborador && !esAdmin && !esPublicoAprobado) {
+      return res.status(403).json({ success: false, message: 'No tienes permiso para ver los colaboradores de este proyecto' });
+    }
     res.status(200).json({ success: true, total: proyecto.colaboradores.length, data: proyecto.colaboradores });
   } catch (error) { res.status(500).json({ success: false, message: 'Error al obtener colaboradores', error: error.message }); }
 };
