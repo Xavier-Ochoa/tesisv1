@@ -169,23 +169,20 @@ const recuperarPassword = async (req, res) => {
     try {
         const { email } = req.body;
         if (!email) return res.status(400).json({ msg: 'Debes ingresar tu correo institucional' });
-        // +token, +estado y +confirmEmail necesarios porque tienen select:false en el modelo
         const usuarioBDD = await Estudiante.findOne({ email: email.toLowerCase() }).select('+token +estado +confirmEmail');
-        if (!usuarioBDD) return res.status(404).json({ msg: 'El usuario no se encuentra registrado' });
 
-        // Verificar que la cuenta esté activa
-        if (usuarioBDD.estado === 'inactivo')
-            return res.status(403).json({ msg: 'Tu cuenta ha sido suspendida. Contacta con el administrador.' });
+        const mensajeGenerico = 'Si el correo está registrado, recibirás un mensaje con instrucciones para restablecer tu contraseña';
 
-        // Verificar que el correo haya sido confirmado
-        if (!usuarioBDD.confirmEmail)
-            return res.status(403).json({ msg: 'Debes confirmar tu correo institucional antes de recuperar tu contraseña.' });
+        // No revelar si el correo existe, si la cuenta está inactiva o si el correo no está confirmado.
+        // Solo se envía el email de recuperación cuando todas las condiciones se cumplen internamente.
+        if (usuarioBDD && usuarioBDD.estado !== 'inactivo' && usuarioBDD.confirmEmail) {
+            const token = usuarioBDD.createTokenRecuperacion();
+            usuarioBDD.token = token;
+            await sendMailToRecoveryPassword(email, token);
+            await usuarioBDD.save();
+        }
 
-        const token = usuarioBDD.createTokenRecuperacion();
-        usuarioBDD.token = token;
-        await sendMailToRecoveryPassword(email, token);
-        await usuarioBDD.save();
-        res.status(200).json({ msg: 'Revisa tu correo institucional para restablecer tu contraseña' });
+        res.status(200).json({ msg: mensajeGenerico });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
@@ -260,7 +257,7 @@ const login = async (req, res) => {
             .select('-__v -updatedAt -createdAt +confirmEmail +estado');
 
         if (!usuarioBDD)
-            return res.status(404).json({ msg: 'El usuario no se encuentra registrado' });
+            return res.status(401).json({ msg: 'Credenciales inválidas' });
 
         if (!usuarioBDD.confirmEmail)
             return res.status(403).json({ msg: 'Debes confirmar tu correo institucional antes de iniciar sesión' });
@@ -270,7 +267,7 @@ const login = async (req, res) => {
 
         const passwordValido = await usuarioBDD.matchPassword(password);
         if (!passwordValido)
-            return res.status(401).json({ msg: 'La contraseña no es correcta' });
+            return res.status(401).json({ msg: 'Credenciales inválidas' });
 
         const { nombre, apellido, _id, rol, cedula, fotoPerfil,
                 carrera, semestre, telefono, descripcion, github } = usuarioBDD;
