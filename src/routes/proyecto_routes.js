@@ -29,7 +29,7 @@ import {
   eliminarDocumentoProyecto,
   descargarDocumentoProyecto,
 } from '../controllers/proyecto_controller.js';
-import { verificarTokenJWT, verificarDocente, verificarTokenOpcional } from '../middlewares/JWT.js';
+import { verificarTokenJWT, verificarDocente, verificarTokenOpcional, verificarEstudianteODocente } from '../middlewares/JWT.js';
 import {
   validarCrearProyecto,
   validarActualizarProyecto,
@@ -80,8 +80,8 @@ router.get('/:id/documento',    verificarTokenOpcional, descargarDocumentoProyec
 router.delete('/:id/documento', verificarTokenJWT, eliminarDocumentoProyecto);
 
 // ── LIKES ─────────────────────────────────────────────────────────────────────
-router.post('/:id/like',   verificarTokenJWT, agregarLike);
-router.delete('/:id/like', verificarTokenJWT, quitarLike);
+router.post('/:id/like',   verificarTokenJWT, verificarEstudianteODocente, agregarLike);
+router.delete('/:id/like', verificarTokenJWT, verificarEstudianteODocente, quitarLike);
 
 // ── COMENTARIOS ───────────────────────────────────────────────────────────────
 router.post('/:id/comentarios', verificarTokenJWT, validarAgregarComentario, manejarErroresValidacion, agregarComentario);
