@@ -9,13 +9,13 @@ export const listarTodosProyectos = async (req, res) => {
   try {
     const { page = 1, limit = 10, estado, categoria, autor, q, sort = '-createdAt' } = req.query;
     const filtro = { enviarAlAdmin: true, activo: true, esUltimaVersion: true };
-    if (estado)    filtro.estado    = estado;
+    if (estado)    filtro.estado    = String(estado);
     if (categoria) {
       if (!['academico', 'extracurricular'].includes(categoria))
         return res.status(400).json({ success: false, message: 'Categoría inválida' });
       filtro.categoria = categoria;
     }
-    if (autor)     filtro.autor     = autor;
+    if (autor)     filtro.autor     = String(autor);
     if (q?.trim()) filtro.$text     = { $search: q.trim() };
 
     const [proyectos, total, estadisticas] = await Promise.all([
