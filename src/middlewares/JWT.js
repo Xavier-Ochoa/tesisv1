@@ -116,6 +116,20 @@ const verificarDocenteOAdmin = (req, res, next) => {
 }
 
 /**
+ * Middleware para rutas accesibles solo por estudiantes o docentes.
+ * Debe usarse DESPUÉS de verificarTokenJWT.
+ */
+const verificarEstudianteODocente = (req, res, next) => {
+    const rolesPermitidos = ['estudiante', 'docente']
+    if (!rolesPermitidos.includes(req.estudianteBDD.rol)) {
+        return res.status(403).json({
+            msg: "Solo los roles de estudiante y docente pueden dar o quitar like a un proyecto"
+        })
+    }
+    next()
+}
+
+/**
  * Middleware de token OPCIONAL.
  * Si hay token válido lo decodifica y adjunta req.estudianteBDD.
  * Si no hay token (o es inválido) simplemente continúa sin bloquear.
@@ -153,4 +167,5 @@ export {
     verificarAdmin,
     verificarDocente,
     verificarDocenteOAdmin,
+    verificarEstudianteODocente,
 }
