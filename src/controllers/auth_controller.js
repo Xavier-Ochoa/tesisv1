@@ -43,6 +43,7 @@ const registro = async (req, res) => {
             password: passwordDirecto, // también se acepta 'password' directamente
             rol,
             carrera,
+            semestre,   // opcional: si no se envía, no se guarda (queda el default del modelo)
         } = req.body;
 
         // Mapear alias → campos internos
@@ -83,6 +84,7 @@ const registro = async (req, res) => {
             email: email.toLowerCase(),
             rol: rolAsignado,
             carrera,
+            ...(semestre !== undefined && { semestre }), // opcional: solo se incluye si vino en el body
             // Campos automáticos — valores por defecto del modelo:
             // estado: 'activo', fechaRegistro: now, confirmEmail: false
         });
