@@ -1,4 +1,5 @@
 import Proyecto from '../models/Proyecto.js';
+import { manejarError } from '../helpers/manejarError.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LISTAR TODOS LOS PROYECTOS — admin
@@ -28,7 +29,7 @@ export const listarTodosProyectos = async (req, res) => {
     ]);
     res.status(200).json({ success: true, data: proyectos, estadisticas, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / limit), limit: parseInt(limit) } });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener los proyectos', error: error.message });
+    manejarError(res, 500, 'Error al obtener los proyectos', error);
   }
 };
 
@@ -48,7 +49,7 @@ export const obtenerProyectoAdmin = async (req, res) => {
     }
     res.status(200).json({ success: true, data: proyecto });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener el proyecto', error: error.message });
+    manejarError(res, 500, 'Error al obtener el proyecto', error);
   }
 };
 
@@ -88,7 +89,7 @@ export const desactivarProyectoAdmin = async (req, res) => {
     await Proyecto.updateMany({ proyecto_id: proyecto.proyecto_id }, { $set: { activo: false } });
     res.status(200).json({ success: true, message: 'Proyecto desactivado. Todas las versiones han sido desactivadas.' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al desactivar el proyecto', error: error.message });
+    manejarError(res, 500, 'Error al desactivar el proyecto', error);
   }
 };
 
@@ -107,7 +108,7 @@ export const reactivarProyectoAdmin = async (req, res) => {
     await Proyecto.updateMany({ proyecto_id: proyecto.proyecto_id }, { $set: { activo: true } });
     res.status(200).json({ success: true, message: 'Proyecto reactivado exitosamente.' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al reactivar el proyecto', error: error.message });
+    manejarError(res, 500, 'Error al reactivar el proyecto', error);
   }
 };
 
@@ -128,7 +129,7 @@ export const aprobarProyecto = async (req, res) => {
     await proyecto.save();
     res.status(200).json({ success: true, message: 'Proyecto aprobado exitosamente. El autor puede ahora publicarlo en la landing page.', data: proyecto });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al aprobar el proyecto', error: error.message });
+    manejarError(res, 500, 'Error al aprobar el proyecto', error);
   }
 };
 
@@ -154,7 +155,7 @@ export const rechazarProyecto = async (req, res) => {
     await proyecto.save();
     res.status(200).json({ success: true, message: 'Proyecto rechazado. El autor podrá editarlo y volver a enviarlo.', data: proyecto });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al rechazar el proyecto', error: error.message });
+    manejarError(res, 500, 'Error al rechazar el proyecto', error);
   }
 };
 
@@ -167,7 +168,7 @@ export const proyectosDestacadosAdmin = async (req, res) => {
       .populate('autor', 'nombre apellido carrera').sort('-vistas').limit(10);
     res.status(200).json({ success: true, data: proyectos });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener proyectos destacados', error: error.message });
+    manejarError(res, 500, 'Error al obtener proyectos destacados', error);
   }
 };
 
@@ -182,6 +183,6 @@ export const historialVersionesAdmin = async (req, res) => {
     if (!versiones.length) return res.status(404).json({ success: false, message: 'Proyecto no encontrado o no enviado al admin' });
     res.status(200).json({ success: true, total: versiones.length, data: versiones });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener el historial de versiones', error: error.message });
+    manejarError(res, 500, 'Error al obtener el historial de versiones', error);
   }
 };
