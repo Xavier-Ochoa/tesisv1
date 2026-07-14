@@ -6,6 +6,7 @@ import { getRandomQuote } from "../services/frases.js";
 import { crearTokenJWT, obtenerExpiracionToken } from "../middlewares/JWT.js"
 import mongoose from "mongoose"
 import { subirImagenCloudinary, eliminarImagenCloudinary } from "../helpers/uploadCloudinary.js"
+import { manejarError } from "../helpers/manejarError.js"
 
 // ===== FUNCIONES DE SERVICIOS =====
 export const getUnsplashImage = async (req, res) => {
@@ -128,12 +129,7 @@ const registro = async (req, res) => {
             return res.status(400).json({ msg: 'Error de validación', errors: errores });
         }
 
-        res.status(500).json({
-            success: false,
-            message: 'Error interno del servidor',
-            error: error.message,
-            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
-        });
+        manejarError(res, 500, 'Error interno del servidor', error);
     }
 };
 
@@ -160,7 +156,7 @@ const confirmarMail = async (req, res) => {
         res.status(200).json({ msg: 'Cuenta confirmada. Ya puedes iniciar sesión.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
+        manejarError(res, 500, "Error interno del servidor", error);
     }
 };
 
@@ -185,7 +181,7 @@ const recuperarPassword = async (req, res) => {
         res.status(200).json({ msg: mensajeGenerico });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
+        manejarError(res, 500, "Error interno del servidor", error);
     }
 };
 
@@ -208,7 +204,7 @@ const comprobarTokenPasword = async (req, res) => {
         res.status(200).json({ msg: 'Token confirmado. Ya puedes crear tu nueva contraseña.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
+        manejarError(res, 500, "Error interno del servidor", error);
     }
 };
 
@@ -239,7 +235,7 @@ const crearNuevoPassword = async (req, res) => {
         res.status(200).json({ msg: '¡Contraseña actualizada! Ya puedes iniciar sesión.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
+        manejarError(res, 500, "Error interno del servidor", error);
     }
 };
 
@@ -292,7 +288,7 @@ const login = async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
+        manejarError(res, 500, "Error interno del servidor", error);
     }
 };
 
@@ -309,7 +305,7 @@ const cerrarSesion = async (req, res) => {
             return res.status(200).json({ msg: 'La sesión ya había sido cerrada anteriormente' });
         }
         console.error('Error al cerrar sesión:', error);
-        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
+        manejarError(res, 500, "Error interno del servidor", error);
     }
 };
 
@@ -323,7 +319,7 @@ const perfil = (req, res) => {
             correoInstitucional: datosPerfil.email,
         });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
+        manejarError(res, 500, "Error interno del servidor", error);
     }
 };
 
@@ -408,7 +404,7 @@ const actualizarPerfil = async (req, res) => {
 
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
+        manejarError(res, 500, "Error interno del servidor", error);
     }
 };
 
@@ -441,7 +437,7 @@ const actualizarPassword = async (req, res) => {
 
         res.status(200).json({ msg: 'Contraseña actualizada correctamente' });
     } catch (error) {
-        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
+        manejarError(res, 500, "Error interno del servidor", error);
     }
 };
 
@@ -501,7 +497,7 @@ const cambiarRol = async (req, res) => {
 
     } catch (error) {
         console.error('❌ Error al cambiar rol:', error.message);
-        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
+        manejarError(res, 500, "Error interno del servidor", error);
     }
 };
 
@@ -541,7 +537,7 @@ const reenviarConfirmacion = async (req, res) => {
         res.status(200).json({ msg: 'Token de confirmación reenviado. Revisa tu correo institucional.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: "Error interno del servidor", error: error.message });
+        manejarError(res, 500, "Error interno del servidor", error);
     }
 };
 
