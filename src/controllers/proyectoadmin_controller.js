@@ -8,8 +8,15 @@ import { manejarError } from '../helpers/manejarError.js';
 // ─────────────────────────────────────────────────────────────────────────────
 export const listarTodosProyectos = async (req, res) => {
   try {
-    const { page = 1, limit = 10, estado, categoria, autor, q, sort = '-createdAt' } = req.query;
-    const filtro = { enviarAlAdmin: true, activo: true, esUltimaVersion: true };
+    const { page = 1, limit = 10, estado, categoria, autor, q, sort = '-createdAt', activo } = req.query;
+    const filtro = { enviarAlAdmin: true, esUltimaVersion: true };
+
+    if (activo === undefined || activo === '') {
+      filtro.activo = true;              // comportamiento actual por defecto (botón "Activos")
+    } else if (activo !== 'todos') {
+      filtro.activo = activo === 'true'; // 'true' → activos, 'false' → inactivos
+    }
+    // si activo === 'todos', no se agrega la condición → trae ambos
     if (estado)    filtro.estado    = String(estado);
     if (categoria) {
       if (!['academico', 'extracurricular'].includes(categoria))
