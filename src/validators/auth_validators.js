@@ -110,6 +110,10 @@ export const validarRegistro = [
       'Procesamiento de Alimentos',
       'Procesamiento Industrial de la Madera',
     ]).withMessage('La carrera no es válida. Las opciones permitidas son: Agua y Saneamiento Ambiental, Desarrollo de Software, Electromecánica, Redes y Telecomunicaciones, Procesamiento de Alimentos, Procesamiento Industrial de la Madera'),
+
+  body('semestre')
+    .optional({ checkFalsy: true })
+    .isInt({ min: 1, max: 5 }).withMessage('El semestre debe ser un número entre 1 y 5'),
 ];
 
 /**
@@ -133,7 +137,7 @@ export const validarActualizarPerfil = [
 
   body('semestre')
     .optional({ checkFalsy: true })
-    .isInt({ min: 0, max: 5 }).withMessage('El semestre debe ser un número entre 0 y 5'),
+    .isInt({ min: 1, max: 5 }).withMessage('El semestre debe ser un número entre 1 y 5'),
 
   body('telefono')
     .optional()
