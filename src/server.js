@@ -302,7 +302,7 @@ Validación de Datos
 
 <a
 class="button"
-href="https://documenter.getpostman.com/view/42480684/2sB2j1jDif"
+href="https://documenter.getpostman.com/view/49837957/2sBY4LS36G"
 target="_blank">
 
 📘 Ver documentación de la API
