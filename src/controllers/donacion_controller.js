@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import Donacion from "../models/Donacion.js";
+import { manejarError } from "../helpers/manejarError.js";
 
 const stripe = new Stripe(process.env.STRIPE_PRIVATE_KEY);
 
@@ -68,11 +69,6 @@ export const donarPlataforma = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("❌ Error en donación:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error al procesar la donación",
-      error: error.message,
-    });
+    manejarError(res, 500, "Error al procesar la donación", error);
   }
 };
