@@ -140,7 +140,7 @@ export const validarActualizarPerfil = [
     .isInt({ min: 1, max: 5 }).withMessage('El semestre debe ser un número entre 1 y 5'),
 
   body('telefono')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .matches(/^\d{10}$/).withMessage('El teléfono debe tener exactamente 10 dígitos'),
 
@@ -150,9 +150,8 @@ export const validarActualizarPerfil = [
     .isLength({ max: 500 }).withMessage('La descripción no puede exceder 500 caracteres'),
 
   body('github')
-    .optional()
-    .trim()
-    .notEmpty().withMessage('El usuario de GitHub no puede ser un valor vacío'),
+    .optional({ checkFalsy: true })
+    .trim(),
 
   // Campos bloqueados — devuelve error claro si se intenta modificar
   body('nombre')
