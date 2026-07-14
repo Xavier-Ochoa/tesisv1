@@ -4,6 +4,7 @@ import { subirImagenCloudinary, eliminarImagenCloudinary } from '../helpers/uplo
 import { generarProyectoId, siguienteVersion } from '../helpers/generarProyectoId.js';
 import { validarEditable, validarVersionable, rolesEnProyecto } from '../helpers/reglasProyecto.js';
 import { subirPDFGridFS, eliminarPDFGridFS, descargarPDFGridFS } from '../helpers/gridfs.js';
+import { manejarError } from '../helpers/manejarError.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LANDING — solo publico=true + aprobado + activo + esUltimaVersion
@@ -29,7 +30,7 @@ export const listarProyectos = async (req, res) => {
     ]);
     res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / limit), limit: parseInt(limit) } });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener los proyectos', error: error.message });
+    manejarError(res, 500, 'Error al obtener los proyectos', error);
   }
 };
 
@@ -58,7 +59,7 @@ export const misProyectos = async (req, res) => {
     }));
     res.status(200).json({ success: true, data: proyectosConRol, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / limit), limit: parseInt(limit) } });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener tus proyectos', error: error.message });
+    manejarError(res, 500, 'Error al obtener tus proyectos', error);
   }
 };
 
@@ -83,7 +84,7 @@ export const historialVersiones = async (req, res) => {
     }
     res.status(200).json({ success: true, total: versiones.length, data: versiones });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener el historial de versiones', error: error.message });
+    manejarError(res, 500, 'Error al obtener el historial de versiones', error);
   }
 };
 
@@ -123,7 +124,7 @@ export const obtenerProyecto = async (req, res) => {
     if (esPublicoAprobado) await proyecto.incrementarVistas();
     res.status(200).json({ success: true, data: proyecto });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener el proyecto', error: error.message });
+    manejarError(res, 500, 'Error al obtener el proyecto', error);
   }
 };
 
@@ -181,7 +182,7 @@ export const crearProyecto = async (req, res) => {
     if (error.name === 'ValidationError') {
       return res.status(400).json({ success: false, message: 'Error de validación', errors: Object.values(error.errors).map(e => e.message) });
     }
-    res.status(500).json({ success: false, message: 'Error al crear el proyecto', error: error.message });
+    manejarError(res, 500, 'Error al crear el proyecto', error);
   }
 };
 
@@ -253,7 +254,7 @@ export const actualizarProyecto = async (req, res) => {
       .populate('colaboradores', 'nombre apellido carrera');
     res.status(200).json({ success: true, message: 'Proyecto actualizado exitosamente', data: proyectoActualizado });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al actualizar el proyecto', error: error.message });
+    manejarError(res, 500, 'Error al actualizar el proyecto', error);
   }
 };
 
@@ -301,7 +302,7 @@ export const subirDocumentoProyecto = async (req, res) => {
       data: { documentos: proyecto.documentos },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al subir el documento', error: error.message });
+    manejarError(res, 500, 'Error al subir el documento', error);
   }
 };
 
@@ -332,7 +333,7 @@ export const eliminarDocumentoProyecto = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Documento eliminado correctamente' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar el documento', error: error.message });
+    manejarError(res, 500, 'Error al eliminar el documento', error);
   }
 };
 
@@ -377,7 +378,7 @@ export const descargarDocumentoProyecto = async (req, res) => {
     });
     downloadStream.pipe(res);
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al descargar el documento', error: error.message });
+    manejarError(res, 500, 'Error al descargar el documento', error);
   }
 };
 
@@ -410,7 +411,7 @@ export const publicarProyecto = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Proyecto publicado exitosamente. Ahora es visible en la landing page.', data: proyecto });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al publicar el proyecto', error: error.message });
+    manejarError(res, 500, 'Error al publicar el proyecto', error);
   }
 };
 
@@ -496,7 +497,7 @@ export const crearNuevaVersion = async (req, res) => {
     if (error.name === 'ValidationError') {
       return res.status(400).json({ success: false, message: 'Error de validación', errors: Object.values(error.errors).map(e => e.message) });
     }
-    res.status(500).json({ success: false, message: 'Error al crear la nueva versión', error: error.message });
+    manejarError(res, 500, 'Error al crear la nueva versión', error);
   }
 };
 
@@ -530,7 +531,7 @@ export const eliminarProyecto = async (req, res) => {
     }
     return res.status(200).json({ success: true, message: 'Proyecto eliminado permanentemente' });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al eliminar el proyecto', error: error.message });
+    manejarError(res, 500, 'Error al eliminar el proyecto', error);
   }
 };
 
@@ -543,7 +544,7 @@ export const proyectosDestacados = async (req, res) => {
       .populate('autor', 'nombre apellido carrera').sort('-vistas').limit(6);
     res.status(200).json({ success: true, data: proyectos });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener proyectos destacados', error: error.message });
+    manejarError(res, 500, 'Error al obtener proyectos destacados', error);
   }
 };
 
@@ -559,7 +560,7 @@ export const listarProyectosPorCategoria = async (req, res) => {
     ]);
     res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / limit) } });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
+    manejarError(res, 500, 'Error al obtener proyectos', error);
   }
 };
 
@@ -574,7 +575,7 @@ export const listarProyectosPorEstudiante = async (req, res) => {
     ]);
     res.status(200).json({ success: true, data: proyectos, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / Number(limit)), limit: parseInt(limit) } });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message });
+    manejarError(res, 500, 'Error al obtener proyectos', error);
   }
 };
 
@@ -594,7 +595,7 @@ export const agregarLike = async (req, res) => {
     if (!verificarAccesoInteraccion(proyecto, req.estudianteBDD._id)) return res.status(403).json({ success: false, message: 'No tienes permiso para interactuar con este proyecto' });
     await proyecto.agregarLike(req.estudianteBDD._id);
     res.status(200).json({ success: true, message: 'Like agregado', likes: proyecto.likes.length });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al agregar like', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al agregar like', error); }
 };
 
 export const quitarLike = async (req, res) => {
@@ -604,7 +605,7 @@ export const quitarLike = async (req, res) => {
     if (!verificarAccesoInteraccion(proyecto, req.estudianteBDD._id)) return res.status(403).json({ success: false, message: 'No tienes permiso para interactuar con este proyecto' });
     await proyecto.quitarLike(req.estudianteBDD._id);
     res.status(200).json({ success: true, message: 'Like quitado', likes: proyecto.likes.length });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al quitar like', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al quitar like', error); }
 };
 
 export const agregarComentario = async (req, res) => {
@@ -618,7 +619,7 @@ export const agregarComentario = async (req, res) => {
     await proyecto.save();
     await proyecto.populate('comentarios.estudiante', 'nombre apellido');
     res.status(201).json({ success: true, message: 'Comentario agregado', data: proyecto.comentarios });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al agregar comentario', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al agregar comentario', error); }
 };
 
 export const eliminarComentario = async (req, res) => {
@@ -634,7 +635,7 @@ export const eliminarComentario = async (req, res) => {
     comentario.deleteOne();
     await proyecto.save();
     res.status(200).json({ success: true, message: 'Comentario eliminado' });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al eliminar comentario', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al eliminar comentario', error); }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -662,7 +663,7 @@ export const agregarColaborador = async (req, res) => {
     await proyecto.save();
     await proyecto.populate('colaboradores', 'nombre apellido email carrera');
     res.status(200).json({ success: true, message: 'Colaborador agregado', colaboradores: proyecto.colaboradores });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al agregar colaborador', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al agregar colaborador', error); }
 };
 
 export const eliminarColaborador = async (req, res) => {
@@ -678,7 +679,7 @@ export const eliminarColaborador = async (req, res) => {
     await proyecto.save();
     await proyecto.populate('colaboradores', 'nombre apellido email carrera');
     res.status(200).json({ success: true, message: 'Colaborador eliminado', colaboradores: proyecto.colaboradores });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al eliminar colaborador', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al eliminar colaborador', error); }
 };
 
 export const dondeColabora = async (req, res) => {
@@ -687,7 +688,7 @@ export const dondeColabora = async (req, res) => {
     const proyectos = await Proyecto.find({ colaboradores: usuarioId, autor: { $ne: usuarioId }, esUltimaVersion: true, activo: true })
       .populate('autor', 'nombre apellido carrera email').populate('colaboradores', 'nombre apellido carrera email semestre').sort('-createdAt').lean();
     res.status(200).json({ success: true, total: proyectos.length, data: proyectos });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al obtener proyectos', error); }
 };
 
 export const misProyectosConColaboradores = async (req, res) => {
@@ -696,7 +697,7 @@ export const misProyectosConColaboradores = async (req, res) => {
     const proyectos = await Proyecto.find({ autor: usuarioId, esUltimaVersion: true, activo: true, 'colaboradores.0': { $exists: true } })
       .populate('colaboradores', 'nombre apellido carrera email semestre').sort('-createdAt').lean();
     res.status(200).json({ success: true, total: proyectos.length, data: proyectos });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al obtener proyectos', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al obtener proyectos', error); }
 };
 
 export const listarColaboradores = async (req, res) => {
@@ -711,7 +712,7 @@ export const listarColaboradores = async (req, res) => {
       return res.status(403).json({ success: false, message: 'No tienes permiso para ver los colaboradores de este proyecto' });
     }
     res.status(200).json({ success: true, total: proyecto.colaboradores.length, data: proyecto.colaboradores });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al obtener colaboradores', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al obtener colaboradores', error); }
 };
 
 export const eliminarImagenProyecto = async (req, res) => {
@@ -733,7 +734,7 @@ export const eliminarImagenProyecto = async (req, res) => {
     proyecto.imagenesID.splice(idx, 1);
     await proyecto.save();
     res.status(200).json({ success: true, message: 'Imagen eliminada correctamente', data: { imagenes: proyecto.imagenes, total: proyecto.imagenes.length } });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al eliminar la imagen', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al eliminar la imagen', error); }
 };
 
 export const actualizarProyectoColaborador = async (req, res) => {
@@ -765,7 +766,7 @@ export const actualizarProyectoColaborador = async (req, res) => {
     const proyectoActualizado = await Proyecto.findByIdAndUpdate(id, { $set: datosActualizacion }, { new: true, runValidators: true })
       .populate('autor', 'nombre apellido carrera email').populate('colaboradores', 'nombre apellido carrera');
     res.status(200).json({ success: true, message: 'Proyecto actualizado por colaborador', data: proyectoActualizado });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al actualizar el proyecto', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al actualizar el proyecto', error); }
 };
 
 export const eliminarImagenColaborador = async (req, res) => {
@@ -788,5 +789,5 @@ export const eliminarImagenColaborador = async (req, res) => {
     proyecto.imagenesID.splice(idx, 1);
     await proyecto.save();
     res.status(200).json({ success: true, message: 'Imagen eliminada correctamente', data: { imagenes: proyecto.imagenes, total: proyecto.imagenes.length } });
-  } catch (error) { res.status(500).json({ success: false, message: 'Error al eliminar la imagen', error: error.message }); }
+  } catch (error) { manejarError(res, 500, 'Error al eliminar la imagen', error); }
 };
