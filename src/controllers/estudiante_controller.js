@@ -12,7 +12,7 @@ import { manejarError } from '../helpers/manejarError.js';
  */
 export const listarEstudiantes = async (req, res) => {
   try {
-    const { carrera, semestre, apellido, rol } = req.query;
+    const { carrera, semestre, apellido, rol, search, limit } = req.query;
 
     // Filtro dinámico — sin rol fijo
     const filtro = {};
@@ -52,10 +52,23 @@ export const listarEstudiantes = async (req, res) => {
       filtro.apellido = { $regex: apellido, $options: 'i' };
     }
 
-    const usuarios = await Estudiante.find(filtro)
+    // Búsqueda libre por nombre, apellido o email (usada por el buscador
+    // de "Nueva conversación" del chat de administración).
+    if (search?.trim()) {
+      const regex = { $regex: search.trim(), $options: 'i' };
+      filtro.$or = [{ nombre: regex }, { apellido: regex }, { email: regex }];
+    }
+
+    let query = Estudiante.find(filtro)
       .select('nombre apellido email cedula carrera semestre rol fotoPerfil +estado +confirmEmail')
-      .sort({ apellido: 1, nombre: 1 })
-      .lean();
+      .sort({ apellido: 1, nombre: 1 });
+
+    // Límite de resultados (usado por el buscador del chat admin)
+    if (limit) {
+      query = query.limit(Math.min(parseInt(limit) || 50, 50));
+    }
+
+    const usuarios = await query.lean();
 
     res.status(200).json({
       success: true,
@@ -65,6 +78,7 @@ export const listarEstudiantes = async (req, res) => {
         carrera:  carrera  || 'todos',
         semestre: semestre || 'todos',
         apellido: apellido || 'todos',
+        search:   search   || 'todos',
       },
       data: usuarios,
     });
