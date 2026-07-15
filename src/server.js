@@ -27,6 +27,12 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // CORS
+if (!process.env.URL_FRONTEND) {
+  console.warn(
+    "⚠️  URL_FRONTEND no está definida — CORS solo aceptará los orígenes fijos del array (no hay comodín de respaldo)."
+  );
+}
+
 app.use(
   cors({
     origin: [
@@ -39,8 +45,8 @@ app.use(
       "http://127.0.0.1:5500",
       "https://tesisfrontend2.vercel.app",
       "https://examen-back-v1.vercel.app",
-      process.env.URL_FRONTEND || "*",
-    ],
+      process.env.URL_FRONTEND,
+    ].filter(Boolean), // limpia el elemento undefined si URL_FRONTEND no está definida
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   })
