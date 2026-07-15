@@ -26,7 +26,7 @@ export const listarTodosProyectos = async (req, res) => {
     if (autor)     filtro.autor     = String(autor);
     if (q?.trim()) filtro.$text     = { $search: q.trim() };
 
-    const [proyectos, total, estadisticas] = await Promise.all([
+    const [proyectos, total, estadisticasAgg] = await Promise.all([
       Proyecto.find(filtro)
         .populate('autor', 'nombre apellido carrera email')
         .populate('colaboradores', 'nombre apellido carrera')
@@ -34,6 +34,15 @@ export const listarTodosProyectos = async (req, res) => {
       Proyecto.countDocuments(filtro),
       Proyecto.aggregate([{ $match: filtro }, { $group: { _id: '$estado', count: { $sum: 1 } } }]),
     ]);
+    // Se transforma el array de la agregación ({_id, count}) al objeto
+    // {total, pendientes, aprobados, rechazados} que espera el frontend
+    // (AdminProjects.jsx lee estadisticas.total / .pendientes / .aprobados / .rechazados).
+    const estadisticas = {
+      total: estadisticasAgg.reduce((acc, e) => acc + e.count, 0),
+      pendientes: estadisticasAgg.find(e => e._id === 'pendiente')?.count || 0,
+      aprobados: estadisticasAgg.find(e => e._id === 'aprobado')?.count || 0,
+      rechazados: estadisticasAgg.find(e => e._id === 'rechazado')?.count || 0,
+    };
     res.status(200).json({ success: true, data: proyectos, estadisticas, pagination: { total, page: parseInt(page), totalPages: Math.ceil(total / limit), limit: parseInt(limit) } });
   } catch (error) {
     manejarError(res, 500, 'Error al obtener los proyectos', error);
