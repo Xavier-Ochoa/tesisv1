@@ -40,18 +40,17 @@ const validarURL = (campo) =>
     return true;
   });
 
-// Validación de fechaFin obligatoria y posterior a fechaInicio
-const validarFechaFin = (requerido = false) => {
-  const campo = requerido
-    ? body('fechaFin').notEmpty().withMessage('La fecha de fin es obligatoria').isISO8601().withMessage('La fecha de fin debe tener formato válido (YYYY-MM-DD)')
-    : body('fechaFin').notEmpty().withMessage('La fecha de fin es obligatoria').isISO8601().withMessage('La fecha de fin debe tener formato válido (YYYY-MM-DD)');
-  return campo.custom((fechaFin, { req }) => {
-    if (req.body.fechaInicio && fechaFin && new Date(fechaFin) < new Date(req.body.fechaInicio)) {
-      throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
-    }
-    return true;
-  });
-};
+// Validación de fechaFin: siempre obligatoria y posterior a fechaInicio
+const validarFechaFin = () =>
+  body('fechaFin')
+    .notEmpty().withMessage('La fecha de fin es obligatoria')
+    .isISO8601().withMessage('La fecha de fin debe tener formato válido (YYYY-MM-DD)')
+    .custom((fechaFin, { req }) => {
+      if (req.body.fechaInicio && fechaFin && new Date(fechaFin) < new Date(req.body.fechaInicio)) {
+        throw new Error('La fecha de fin debe ser posterior a la fecha de inicio');
+      }
+      return true;
+    });
 
 // Campos comunes obligatorios para los 3 formularios (creación: siempre requeridos)
 const camposObligatoriosComunes = [
