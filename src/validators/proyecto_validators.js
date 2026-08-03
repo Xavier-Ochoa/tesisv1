@@ -1,4 +1,47 @@
 import { body, param } from 'express-validator';
+import fs from 'fs';
+
+// ── Verificación de firma binaria (magic bytes) ─────────────────────────────
+// El mimetype que llega en req.files es un dato que declara el cliente al
+// subir el archivo (fácilmente falsificable, ej. renombrar un .exe a .jpg y
+// forzar el Content-Type manualmente). Para confirmar que el archivo es
+// realmente del tipo que dice ser, se comparan los primeros bytes reales del
+// archivo contra la firma binaria conocida de cada formato permitido.
+const FIRMAS_BINARIAS = {
+  'image/jpeg': [0xFF, 0xD8, 0xFF],
+  'image/jpg':  [0xFF, 0xD8, 0xFF],
+  'image/png':  [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A],
+};
+
+const leerPrimerosBytes = (rutaArchivo, cantidad) => {
+  const fd = fs.openSync(rutaArchivo, 'r');
+  try {
+    const buffer = Buffer.alloc(cantidad);
+    const bytesLeidos = fs.readSync(fd, buffer, 0, cantidad, 0);
+    return buffer.subarray(0, bytesLeidos);
+  } finally {
+    fs.closeSync(fd);
+  }
+};
+
+const coincideFirma = (buffer, firma) => firma.every((byte, i) => buffer[i] === byte);
+
+// Verifica que el contenido real del archivo coincida con el mimetype declarado.
+const validarFirmaImagen = (archivo) => {
+  if (archivo.mimetype === 'image/webp') {
+    // WEBP: 'RIFF' en bytes 0-3 y 'WEBP' en bytes 8-11 del contenedor RIFF
+    const buffer = leerPrimerosBytes(archivo.tempFilePath, 12);
+    const esRiff = coincideFirma(buffer, [0x52, 0x49, 0x46, 0x46]);
+    const esWebp = buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+    return esRiff && esWebp;
+  }
+
+  const firma = FIRMAS_BINARIAS[archivo.mimetype];
+  if (!firma) return false; // mimetype no soportado (ya se rechaza antes por tiposPermitidos)
+
+  const buffer = leerPrimerosBytes(archivo.tempFilePath, firma.length);
+  return coincideFirma(buffer, firma);
+};
 
 const convertirStringAArray = (value) => {
   if (!value) return [];
@@ -22,6 +65,7 @@ const validarImagenesOpcionales = body().custom((value, { req }) => {
   if (archivos.length > 5) throw new Error('Solo se permiten máximo 5 imágenes por proyecto');
   const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
   if (archivos.some(f => !tiposPermitidos.includes(f.mimetype))) throw new Error('Solo se permiten imágenes en formato JPG, PNG o WEBP');
+  if (archivos.some(f => !validarFirmaImagen(f))) throw new Error('El contenido del archivo no corresponde a una imagen válida (JPG, PNG o WEBP)');
   if (archivos.some(f => f.size > 5 * 1024 * 1024)) throw new Error('Cada imagen no debe superar los 5 MB');
   return true;
 });
@@ -117,6 +161,7 @@ export const validarSubirImagenesProyecto = [
     if (!Array.isArray(req.files.imagenes)) req.files.imagenes = [req.files.imagenes];
     const tiposPermitidos = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
     if (req.files.imagenes.some(f => !tiposPermitidos.includes(f.mimetype))) throw new Error('Solo se permiten imágenes JPG, PNG o WEBP');
+    if (req.files.imagenes.some(f => !validarFirmaImagen(f))) throw new Error('El contenido del archivo no corresponde a una imagen válida (JPG, PNG o WEBP)');
     if (req.files.imagenes.some(f => f.size > 5 * 1024 * 1024)) throw new Error('Las imágenes no deben superar los 5 MB cada una');
     return true;
   }),
