@@ -278,12 +278,14 @@ cors({
     'http://127.0.0.1:5500',
     'https://tesisfrontend2.vercel.app',
     'https://examen-back-v1.vercel.app',
-    process.env.URL_FRONTEND || "*"
-  ],
+    process.env.URL_FRONTEND,
+  ].filter(Boolean), // si URL_FRONTEND no está definida, simplemente se omite (sin comodín "*")
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
   credentials: true,
 })
 ```
+
+> ⚠️ Si `URL_FRONTEND` no está definida, el servidor solo acepta los orígenes fijos de la lista; ya **no** existe un comodín `"*"` de respaldo.
 
 ---
 
@@ -293,7 +295,8 @@ cors({
 
 ```bash
 curl http://localhost:3000/
-# Respuesta: "API de Proyectos ESFOT - EPN"
+# Respuesta: página HTML de bienvenida ("API REST PoliExpo") con estado del
+# servidor y enlace a la documentación de Postman.
 ```
 
 ### Formato de respuestas
@@ -465,7 +468,7 @@ Todas las rutas requieren JWT + rol `admin`.
 
 | Método | Ruta | Auth | Descripción |
 |--------|------|:----:|-------------|
-| POST | `/generar-titulo` | JWT | Genera 3 sugerencias de título a partir de una descripción (mínimo 15 caracteres). |
+| POST | `/generar-titulo` | JWT + estudiante/docente | Genera 3 sugerencias de título a partir de una descripción (mínimo 15 caracteres). |
 
 ```http
 POST /api/ia/generar-titulo
@@ -506,10 +509,11 @@ Respuesta:
 
 | Método | Ruta | Auth | Descripción |
 |--------|------|:----:|-------------|
-| POST | `/` | Pública | Procesa una donación con Stripe (requiere `paymentMethodId` y `monto`, entre $2 y $1000). |
+| POST | `/` | JWT + estudiante/docente | Procesa una donación con Stripe (requiere `paymentMethodId` y `monto`, entre $2 y $1000). |
 
 ```http
 POST /api/donaciones
+Authorization: Bearer {token}
 Content-Type: application/json
 
 {
@@ -541,7 +545,7 @@ Content-Type: application/json
   tokenExpira: Date,                             // select: false
   fotoPerfil: { url, publicId },
   carrera: String (enum de 6 carreras de ESFOT),
-  semestre: Number (0-5),
+  semestre: Number (1-5),
   telefono: String,
   descripcion: String,
   github: String,
@@ -650,13 +654,22 @@ El proyecto incluye `vercel.json` en la raíz:
 
 ```json
 {
-  "buildCommand": "npm install",
-  "outputDirectory": ".",
-  "functions": {
-    "src/index.js": {
-      "memory": 3008,
-      "maxDuration": 60
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "version": 2,
+  "builds": [
+    {
+      "src": "src/index.js",
+      "use": "@vercel/node"
     }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "src/index.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
   }
 }
 ```
