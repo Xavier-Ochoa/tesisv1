@@ -284,14 +284,22 @@ export const subirDocumentoProyecto = async (req, res) => {
       return res.status(400).json({ success: false, message: 'El documento debe ser un archivo PDF' });
     }
 
-    // Eliminar PDF anterior si existe
+    const { readFileSync } = await import('fs');
+    const buffer = readFileSync(archivo.tempFilePath);
+
+    // Verifica la firma binaria real del archivo ("%PDF-") en lugar de confiar
+    // solo en el mimetype declarado por el cliente, que puede ser falsificado.
+    const esPDFValido = buffer.subarray(0, 5).toString('ascii') === '%PDF-';
+    if (!esPDFValido) {
+      return res.status(400).json({ success: false, message: 'El archivo no es un PDF válido' });
+    }
+
+    // Eliminar PDF anterior si existe (solo después de validar el nuevo archivo)
     if (proyecto.documentos?.length > 0) {
       await eliminarPDFGridFS(proyecto.documentos[0].fileId);
     }
 
-    const { readFileSync } = await import('fs');
-    const buffer = readFileSync(archivo.tempFilePath);
-    const meta   = await subirPDFGridFS(buffer, archivo.name, archivo.mimetype);
+    const meta = await subirPDFGridFS(buffer, archivo.name, archivo.mimetype);
 
     proyecto.documentos = [meta];
     await proyecto.save();
